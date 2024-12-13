@@ -3,8 +3,38 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #3B82F6;
+  --secondary: #06B6D4;
+  --background: #111827;
+  --text: #FFFFFF;
+}
+
+.theme-default {
+  --primary: #3B82F6;
+  --secondary: #06B6D4;
+  --background: #111827;
+  --text: #FFFFFF;
+}
+
+.theme-ocean {
+  --primary: #0EA5E9;
+  --secondary: #22D3EE;
+  --background: #0C4A6E;
+  --text: #F0F9FF;
+}
+
+.theme-sunset {
+  --primary: #F59E0B;
+  --secondary: #EF4444;
+  --background: #7C2D12;
+  --text: #FFFBEB;
+}
+
+.theme-forest {
+  --primary: #10B981;
+  --secondary: #34D399;
+  --background: #064E3B;
+  --text: #ECFDF5;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -14,8 +44,12 @@
   }
 }
 
+
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--text);
+}
+html
+{
+  scroll-behavior: smooth;
 }
