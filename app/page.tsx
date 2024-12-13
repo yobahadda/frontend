@@ -7,10 +7,12 @@ import Stats from './components/Stats'
 import Testimonials from './components/Testimonials'
 import CTA from './components/CTA'
 import Footer from './components/Footer'
-import ScrollToTopButton from './components/ScrollToTopButton'
+import ScrollToTopButton from './components/ScrolltoTopButton'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
-import ParticleBackground from './components/ParticleBackground'
+import ParticleBackground from './components/ParticlesBackgound'
 import { ThemeProvider } from './components/ThemeContext'
+
+// const randomValue = useMemo(() => Math.random(), []);
 
 export default function Home() {
   const containerRef = useRef(null)
