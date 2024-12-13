@@ -5,8 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Overview } from "./components/Overview"
 import { RecentActivity } from "./components/RecentActivity"
 import { PerformanceChart } from "./components/PerformanceChart"
+import { ModuleCompletionChart } from "./components/ModuleCompletion"
+import { useSession } from '../hooks/useSession'
 
 export default function DashboardPage() {
+  const { professor } = useSession()
+
   return (
     <div className="p-6 space-y-6">
       <motion.div
@@ -15,7 +19,7 @@ export default function DashboardPage() {
         transition={{ duration: 0.5 }}
       >
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">
-          Bienvenue, Professeur
+          Bienvenue, {professor?.prenom} {professor?.nom}
         </h1>
       </motion.div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -41,11 +45,11 @@ export default function DashboardPage() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Moyenne Générale</CardTitle>
-              <CardDescription>Moyenne de tous les cours</CardDescription>
+              <CardTitle>Éléments de Module</CardTitle>
+              <CardDescription>Nombre d'éléments pris en charge</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold">14.5</p>
+              <p className="text-4xl font-bold">8</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -56,11 +60,11 @@ export default function DashboardPage() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Taux de Réussite</CardTitle>
-              <CardDescription>Pourcentage d'étudiants ayant réussi</CardDescription>
+              <CardTitle>Taux de Validation</CardTitle>
+              <CardDescription>Pourcentage d'éléments validés</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold">85%</p>
+              <p className="text-4xl font-bold">75%</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -102,13 +106,28 @@ export default function DashboardPage() {
       >
         <Card>
           <CardHeader>
-            <CardTitle>Performance par Matière</CardTitle>
+            <CardTitle>Performance par Module</CardTitle>
           </CardHeader>
           <CardContent>
             <PerformanceChart />
           </CardContent>
         </Card>
       </motion.div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Progression des Modules</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ModuleCompletionChart />
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   )
 }
+

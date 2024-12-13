@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sidebar } from "./components/SideBar"
+import { Sidebar } from "./components/Sidebar"
 import { Header } from "./components/Header"
 import { useSession } from '../hooks/useSession'
 import { Toaster } from 'react-hot-toast'
@@ -42,3 +42,4 @@ export default function DashboardLayout({
     </div>
   )
 }
+
