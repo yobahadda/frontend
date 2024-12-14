@@ -1,18 +1,56 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from "framer-motion"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Overview } from "./components/Overview"
 import { RecentActivity } from "./components/RecentActivity"
 import { PerformanceChart } from "./components/PerformanceChart"
-import { ModuleCompletionChart } from "./components/ModuleCompletion"
+import { ModuleCompletionChart } from "./components/ModuleCompletionChart"
+import { UpcomingEvents } from "./components/UpcomingEvents"
+import { QuickActions } from "./components/QuickActions"
 import { useSession } from '../hooks/useSession'
+import { fetchDashboardStats } from '@/services/api'
+import { Loader2 } from 'lucide-react'
+
+interface DashboardStats {
+  totalStudents: number;
+  totalModules: number;
+  averageGrade: number;
+  validationRate: number;
+}
 
 export default function DashboardPage() {
   const { professor } = useSession()
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadStats = async () => {
+      if (professor?.id) {
+        try {
+          const data = await fetchDashboardStats(professor.id)
+          setStats(data)
+        } catch (error) {
+          console.error('Error fetching dashboard stats:', error)
+        } finally {
+          setLoading(false)
+        }
+      }
+    }
+    loadStats()
+  }, [professor])
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -22,58 +60,73 @@ export default function DashboardPage() {
           Bienvenue, {professor?.prenom} {professor?.nom}
         </h1>
       </motion.div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Étudiants</CardTitle>
-              <CardDescription>Nombre total d'étudiants inscrits</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold">1,234</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>Éléments de Module</CardTitle>
-              <CardDescription>Nombre d'éléments pris en charge</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold">8</p>
-            </CardContent>
-          </Card>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>Taux de Validation</CardTitle>
-              <CardDescription>Pourcentage d'éléments validés</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold">75%</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Total Étudiants"
+          value={stats?.totalStudents}
+          description="Nombre total d'étudiants"
+          colorClass="from-blue-500 to-blue-600"
+        />
+        <StatCard
+          title="Modules"
+          value={stats?.totalModules}
+          description="Nombre total de modules"
+          colorClass="from-green-500 to-green-600"
+        />
+        <StatCard
+          title="Moyenne Générale"
+          value={stats?.averageGrade.toFixed(2)}
+          description="Moyenne de tous les étudiants"
+          colorClass="from-yellow-500 to-yellow-600"
+        />
+        <StatCard
+          title="Taux de Validation"
+          value={`${(stats?.validationRate * 100).toFixed(1)}%`}
+          description="Pourcentage de modules validés"
+          colorClass="from-purple-500 to-purple-600"
+        />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <PerformanceChart />
+          </motion.div>
+        </div>
+        <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            <QuickActions />
+          </motion.div>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <ModuleCompletionChart />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
+          <UpcomingEvents />
+        </motion.div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
           <Card>
             <CardHeader>
@@ -87,7 +140,7 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
         >
           <Card>
             <CardHeader>
@@ -99,35 +152,27 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
       </div>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance par Module</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PerformanceChart />
-          </CardContent>
-        </Card>
-      </motion.div>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.7 }}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Progression des Modules</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ModuleCompletionChart />
-          </CardContent>
-        </Card>
-      </motion.div>
     </div>
+  )
+}
+
+function StatCard({ title, value, description, colorClass }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card className={`bg-gradient-to-br ${colorClass} text-white`}>
+        <CardHeader>
+          <CardTitle className="text-2xl">{title}</CardTitle>
+          <CardDescription className="text-gray-100">{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-4xl font-bold">{value}</p>
+        </CardContent>
+      </Card>
+    </motion.div>
   )
 }
 

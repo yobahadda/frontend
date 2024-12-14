@@ -59,3 +59,35 @@ export const fetchAllStudents = async () => {
   return response.data;
 };
 
+export const fetchAssignedStudents = async (professorId: number, elementId: number) => {
+  const response = await api.get(`/professeurs/${professorId}/elements/${elementId}/etudiants`);
+  return response.data;
+};
+
+export const validateElementGrades = async (elementId: number) => {
+  const response = await api.post(`/elements/${elementId}/validate`);
+  return response.data;
+};
+
+export const exportElementGrades = async (elementId: number, format: 'excel' | 'pdf') => {
+  const response = await api.get(`/elements/${elementId}/export?format=${format}`, {
+    responseType: 'blob',
+  });
+  return response.data;
+};
+
+export const fetchElementStatus = async (elementId: number) => {
+  const response = await api.get(`/elements/${elementId}/status`);
+  return response.data;
+};
+
+export const fetchDashboardStats = async (professorId: number) => {
+  const response = await api.get(`/statistics/dashboard/${professorId}`);
+  return response.data;
+};
+
+export const fetchDetailedStatistics = async (professorId: number) => {
+  const response = await api.get(`/statistics/detailed/${professorId}`);
+  return response.data;
+};
+
