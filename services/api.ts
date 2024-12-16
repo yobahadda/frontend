@@ -15,7 +15,7 @@ export const fetchModules = async (professorId: number) => {
 };
 
 export const fetchModuleElements = async (moduleId: number) => {
-  const response = await api.get(`/elements/module/${moduleId}`);
+  const response = await api.get(`/elementsDeModule/module/${moduleId}`);
   return response.data;
 };
 
@@ -65,19 +65,19 @@ export const fetchAssignedStudents = async (professorId: number, elementId: numb
 };
 
 export const validateElementGrades = async (elementId: number) => {
-  const response = await api.post(`/elements/${elementId}/validate`);
+  const response = await api.post(`/elementsDeModule/${elementId}/validate`);
   return response.data;
 };
 
-export const exportElementGrades = async (elementId: number, format: 'excel' | 'pdf') => {
-  const response = await api.get(`/elements/${elementId}/export?format=${format}`, {
+export const exportElementGrades = async (elementId: number, format: 'excel' | 'pdf' | 'csv') => {
+  const response = await api.get(`/elementsDeModule/${elementId}/export?format=${format}`, {
     responseType: 'blob',
   });
   return response.data;
 };
 
 export const fetchElementStatus = async (elementId: number) => {
-  const response = await api.get(`/elements/${elementId}/status`);
+  const response = await api.get(`/elementsDeModule/${elementId}/status`);
   return response.data;
 };
 
