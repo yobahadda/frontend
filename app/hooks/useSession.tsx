@@ -9,6 +9,7 @@ interface Professor {
   specialite: string;
   codeIdentification: string;
   login: string;
+  imageUrl: string;
 }
 
 export function useSession() {

@@ -1,0 +1,16 @@
+/modules/professor/${professorId}
+/elementsDeModule/module/${moduleId}
+/etudiants/filiere/${filiereId}
+/notes/element/${elementId}
+/notes/bulk
+/notes/${gradeId}
+/statistics/professor/${professorId}
+/modalites-evaluation/element/${elementId}
+/filieres
+/etudiants
+/professeurs/${professorId}/elements/${elementId}/etudiants
+/elementsDeModule/${elementId}/validate
+/elementsDeModule/${elementId}/export?format=${format}
+/elementsDeModule/${elementId}/status
+/statistics/dashboard/${professorId}
+/statistics/detailed/${professorId}
