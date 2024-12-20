@@ -9,8 +9,10 @@ const api = axios.create({
   },
 });
 
-export const fetchModules = async (professorId: number): Promise<Module[]> => {
-  const response = await api.get(`/modules/professor/${professorId}`);
+export const fetchModules = async (): Promise<Module[]> => {
+  console.log('Fetching all modules');
+  const response = await api.get('/modules');
+  console.log('Modules API response:', response.data);
   return response.data;
 };
 
@@ -19,8 +21,10 @@ export const fetchModuleElements = async (moduleId: number) => {
   return response.data;
 };
 
-export const fetchModuleElementsByProfessor = async (professorId: number): Promise<Module[]> => {
+export const fetchModuleElementsByProfessor = async (professorId: number): Promise<ProfessorElements> => {
+  console.log(`Fetching module elements for professor ${professorId}`);
   const response = await api.get(`/elements/professor/${professorId}`);
+  console.log('Module elements API response:', response.data);
   return response.data;
 };
 
@@ -94,5 +98,11 @@ export const fetchDashboardStats = async (professorId: number) => {
 export const fetchDetailedStatistics = async (professorId: number) => {
   const response = await api.get(`/statistics/detailed/${professorId}`);
   return response.data;
+};
+
+export const filterModulesByProfessor = (modules: Module[], professorId: number): Module[] => {
+  return modules.filter(module => 
+    module.elements.some(element => element.responsable.id === professorId)
+  );
 };
 
