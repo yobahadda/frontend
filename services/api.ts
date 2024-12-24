@@ -9,12 +9,26 @@ const api = axios.create({
   },
 });
 
-export const fetchModules = async (professorId: number) => {
-  const response = await api.get(`/modules/professor/${professorId}`);
+//What the professor can do
+
+export const fetchModuleElementsByProfessor = async (professorId: number) => {
+  const response = await api.get(`/affectation/elements/${professorId}`);
   return response.data;
 };
 
-export const fetchStudents = async (filiereId: number) => {
+export const fetchStudentsByProfessor = async (professorId: number) => {
+  const response = await api.get(`/affectation/etudiants/${professorId}`);
+  return response.data;
+}
+
+export const fetchModulesByProfessor = async (professorId: number) => {
+  const response = await api.get(`/affectation/modules/${professorId}`);
+  return response.data;
+}
+
+
+
+export const fetchStudentsByFiliere = async (filiereId: number) => {
   const response = await api.get(`/etudiants/filiere/${filiereId}`);
   return response.data;
 };
@@ -80,6 +94,10 @@ export const fetchDetailedStatistics = async (professorId: number) => {
   const response = await api.get(`/statistics/detailed/${professorId}`);
   return response.data;
 };
+
+
+
+
 
 // What the administator can do
 // for professors

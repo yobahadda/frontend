@@ -12,6 +12,7 @@ export interface Professeur {
     id: number;
     nom: string;
     module_id: number;
+    filiere_nom: string;
     coef: number;
   }
   
@@ -20,6 +21,7 @@ export interface Professeur {
     nom: string;
     filiere_id: number;
     semestre: number;
+    elements: []
   }
   
   export interface Department {

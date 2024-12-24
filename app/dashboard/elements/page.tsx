@@ -19,15 +19,15 @@ export default function ElementsPage() {
 
   useEffect(() => {
     if (professor?.id) {
-      loadElements()
+      loadElements(professor.id)
     }
   }, [professor])
 
-  const loadElements = async () => {
+  const loadElements = async (id:number) => {
     try {
       setLoading(true)
       console.log('Fetching module elements...')
-      const data = await fetchModuleElementsByProfessor(professor!.id)
+      const data = await fetchModuleElementsByProfessor(id)
       console.log('Module elements data:', data)
       setElements(data)
     } catch (error) {
@@ -56,6 +56,7 @@ export default function ElementsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Élément</TableHead>
+                <TableHead>Filiere</TableHead>
                 <TableHead>Coefficient</TableHead>
                 <TableHead>Responsable</TableHead>
                 <TableHead>Action</TableHead>
@@ -65,15 +66,16 @@ export default function ElementsPage() {
               {elements.map((element) => (
                 <TableRow key={element.id}>
                   <TableCell>{element.nom}</TableCell>
-                  <TableCell>{element.coefficient}</TableCell>
+                  <TableCell>{element.filiere_nom}</TableCell>
+                  <TableCell>{element.coef}</TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
+                    {/* <div className="flex items-center space-x-2">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={element.responsable.imageUrl} alt={`${element.responsable.prenom} ${element.responsable.nom}`} />
                         <AvatarFallback>{element.responsable.prenom[0]}{element.responsable.nom[0]}</AvatarFallback>
                       </Avatar>
                       <span>{element.responsable.prenom} {element.responsable.nom}</span>
-                    </div>
+                    </div> */}
                   </TableCell>
                   <TableCell>
                     <Link href={`/dashboard/elements/${element.id}`}>

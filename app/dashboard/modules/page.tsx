@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from '@/app/hooks/useSession'
-import { fetchModules, filterModulesByProfessor } from '@/services/api'
+import { fetchModulesByProfessor } from '@/services/api'
 import { Module } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -41,18 +41,14 @@ export default function ModulesPage() {
 
   useEffect(() => {
     if (professor?.id) {
-      loadModules()
+      loadModules(professor.id)
     }
   }, [professor])
 
-  const loadModules = async () => {
+  const loadModules = async (id: number) => {
     try {
-      console.log('Fetching modules...');
-      const allModules = await fetchModules()
-      console.log('All modules:', allModules);
-      const filteredModules = filterModulesByProfessor(allModules, professor!.id)
-      console.log('Filtered modules:', filteredModules);
-      setModules(filteredModules)
+      const data =  await fetchModulesByProfessor(id)
+      setModules(data)
     } catch (error) {
       console.error('Error loading modules:', error)
     } finally {
@@ -94,30 +90,32 @@ export default function ModulesPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-500 mb-4">
-                  Semestre {module.semestre} | Année Universitaire: {module.anneeUniversitaire}
+                  Semestre {module.semestre} | Année Universitaire: {'2024-2025'}
                 </p>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Élément</TableHead>
+                      <TableHead>Filière</TableHead>
                       <TableHead>Coefficient</TableHead>
                       <TableHead>Responsable</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {module.elements.map((element) => (
+                    {module.elements.map((element:any) => (
                       <TableRow key={element.id}>
                         <TableCell>{element.nom}</TableCell>
-                        <TableCell>{element.coefficient}</TableCell>
+                        <TableCell>{element.filiere_nom}</TableCell>
+                        <TableCell>{element.coef  }</TableCell>
                         <TableCell>
-                          <div className="flex items-center space-x-2">
+                          {/* <div className="flex items-center space-x-2">
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={element.responsable.imageUrl} alt={`${element.responsable.prenom} ${element.responsable.nom}`} />
                               <AvatarFallback>{element.responsable.prenom[0]}{element.responsable.nom[0]}</AvatarFallback>
                             </Avatar>
                             <span>{element.responsable.prenom} {element.responsable.nom}</span>
-                          </div>
+                          </div> */}
                         </TableCell>
                         <TableCell>
                           <Link href={`/dashboard/elements/${element.id}`}>
@@ -142,7 +140,7 @@ export default function ModulesPage() {
                         </a>
                       </li>
                     ))}
-                    {module.elements.map((element) => 
+                    {module.elements.map((element:any) => 
                       generateLearningResources(element.nom).map((resource, index) => (
                         <li key={`${element.id}-${index}`} className="mb-1">
                           <a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center">

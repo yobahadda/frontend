@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { fetchAllStudents } from '@/services/api'
+import { fetchStudentsByProfessor } from '@/services/api'
 import { Student } from '@/types'
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -11,10 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { motion } from "framer-motion"
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { useSession } from '@/app/hooks/useSession'
 
 const PAGE_SIZE = 10
 
 export default function StudentsPage() {
+  const { professor } = useSession()
   const [students, setStudents] = useState<Student[]>([])
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,7 +27,7 @@ export default function StudentsPage() {
 
   useEffect(() => {
     loadStudents()
-  }, [])
+  }, [professor])
 
   useEffect(() => {
     const filtered = students.filter(student => 
@@ -38,16 +40,19 @@ export default function StudentsPage() {
   }, [searchTerm, students])
 
   const loadStudents = async () => {
-    try {
-      setLoading(true)
-      const data = await fetchAllStudents()
-      setStudents(data)
-      setFilteredStudents(data)
-    } catch (err) {
-      setError('Failed to load students. Please try again later.')
-      console.error('Error loading students:', err)
-    } finally {
-      setLoading(false)
+    if(professor?.id){
+      try {
+        setLoading(true)
+        const data = await fetchStudentsByProfessor(professor.id)
+        console.log(data)
+        setStudents(data)
+        setFilteredStudents(data)
+      } catch (err) {
+        setError('Failed to load students. Please try again later.')
+        console.error('Error loading students:', err)
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
