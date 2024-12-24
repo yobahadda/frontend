@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { Department } from '@/types'
+import { fetchAllStudents, fetchAllDepartments, addStudent, deleteStudent } from '@/services/api'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -17,6 +19,7 @@ interface Student {
   nom: string
   prenom: string
   filiere: string
+  filiere_id: string
   email: string
   annee: number
 }
@@ -25,7 +28,8 @@ const STUDENTS_PER_PAGE = 10
 
 export function StudentList() {
   const [students, setStudents] = useState<Student[]>([])
-  const [newStudent, setNewStudent] = useState<Omit<Student, 'id'>>({ nom: '', prenom: '', filiere: '', email: '', annee: 1 })
+  const [filieres, setFilieres] = useState<Department[]>([])
+  const [newStudent, setNewStudent] = useState<Omit<Student, 'id'>>({ nom: '', prenom: '', filiere: '', email: '', annee: 1, filiere_id: ''})
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,25 +39,40 @@ export function StudentList() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetchStudents()
+    loadData();
   }, [])
 
-  const fetchStudents = async () => {
+  const getStudentYear = (filiere: string) => {
+    if (filiere.toLowerCase() === 'api1') {
+      return 1;
+    }else if (filiere.toLowerCase() === 'api2') {
+      return 2;
+    }else{
+      return 3;
+    }
+  }
+
+  const getFiliereName = (id:number) => {
+    const filiere = filieres.find(f => f.id === id)
+    return filiere ? filiere.nom : 'Inconnu'
+  }
+
+  const loadData = async () => {
     setIsLoading(true)
     try {
-      // In a real application, this would be an API call
-      const response = await new Promise<Student[]>((resolve) => {
-        setTimeout(() => {
-          resolve([
-            { id: 1, nom: 'Dupont', prenom: 'Jean', filiere: 'Informatique', email: 'jean.dupont@example.com', annee: 1 },
-            { id: 2, nom: 'Martin', prenom: 'Marie', filiere: 'Mathématiques', email: 'marie.martin@example.com', annee: 2 },
-            { id: 3, nom: 'Bernard', prenom: 'Luc', filiere: 'Physique', email: 'luc.bernard@example.com', annee: 3 },
-            { id: 4, nom: 'Petit', prenom: 'Sophie', filiere: 'Informatique', email: 'sophie.petit@example.com', annee: 1 },
-            { id: 5, nom: 'Robert', prenom: 'Thomas', filiere: 'Mathématiques', email: 'thomas.robert@example.com', annee: 2 },
-          ])
-        }, 1000)
-      })
-      setStudents(response)
+      const data = await fetchAllStudents();
+      const departments = await fetchAllDepartments();
+      setFilieres(departments);
+      setStudents(data.map((student:any) => {
+        return {
+          id: student.id,
+          nom: student.nom,
+          prenom: student.prenom,
+          filiere: student.filiere_nom,
+          email: student.email,
+          annee: getStudentYear(student.filiere_nom)
+        }
+      }))
     } catch (error) {
       console.error('Failed to fetch students:', error)
       toast.error('Erreur lors du chargement des étudiants')
@@ -67,25 +86,31 @@ export function StudentList() {
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setNewStudent({ ...newStudent, [name]: name === 'annee' ? parseInt(value) : value })
+    setNewStudent({ ...newStudent, 
+      [name]: name === 'annee' ? parseInt(value) : value})
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       if (isEditing && editingId) {
-        // In a real application, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 500))
+        //editing
         setStudents(students.map(s => s.id === editingId ? { ...newStudent, id: editingId } : s))
         toast.success('Étudiant modifié avec succès')
       } else {
-        // In a real application, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        const newId = Math.max(...students.map(s => s.id)) + 1
-        setStudents([...students, { id: newId, ...newStudent }])
+        const filiere_id = parseInt(newStudent.filiere)
+        const filiere_nom = getFiliereName(parseInt(newStudent.filiere))
+        const newData = await addStudent({
+          nom : newStudent.nom,
+          prenom : newStudent.prenom, 
+          email : newStudent.email,
+          filiere_id : filiere_id, //the id of filiere
+          imageUrl : ''  
+        })
+        setStudents([...students, { id: newData.id, ...newStudent, filiere: filiere_nom }])
         toast.success('Étudiant ajouté avec succès')
       }
-      setNewStudent({ nom: '', prenom: '', filiere: '', email: '', annee: 1 })
+      setNewStudent({ nom: '', prenom: '', filiere: '', email: '', annee: 1, filiere_id: ''})
       setIsEditing(false)
       setEditingId(null)
     } catch (error) {
@@ -103,7 +128,7 @@ export function StudentList() {
   const handleDelete = async (id: number) => {
     try {
       // In a real application, this would be an API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      await deleteStudent(id)
       setStudents(students.filter(s => s.id !== id))
       toast.success('Étudiant supprimé avec succès')
     } catch (error) {
@@ -206,9 +231,9 @@ export function StudentList() {
                 <SelectValue placeholder="Sélectionner une filière" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Informatique">Informatique</SelectItem>
-                <SelectItem value="Mathématiques">Mathématiques</SelectItem>
-                <SelectItem value="Physique">Physique</SelectItem>
+                {filieres.map((filiere) => (
+                  <SelectItem key={filiere.id} value={(filiere.id).toString()}>{filiere.nom}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select onValueChange={(value) => handleSelectChange('annee', value)} value={newStudent.annee.toString()}>

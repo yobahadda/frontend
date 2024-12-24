@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchAllProfessors, addProfessor, deleteProfessor } from '@/services/api'
+import { Professeur } from '@/types'
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,18 +26,34 @@ export function ProfessorManagement() {
   const [editingId, setEditingId] = useState<number | null>(null)
 
   useEffect(() => {
-    // Fetch professors from API
-    setProfessors([
-      { id: 1, nom: 'Dupont', prenom: 'Jean', email: 'jean.dupont@example.com', specialite: 'Mathématiques' },
-      { id: 2, nom: 'Martin', prenom: 'Marie', email: 'marie.martin@example.com', specialite: 'Physique' },
-    ])
+    loadProfessors();
   }, [])
+
+  const loadProfessors = async () => {
+    const profs : Professeur[] = await fetchAllProfessors();
+    setProfessors(profs.map(p => ({ 
+        id: p.id, 
+        nom: p.nom, 
+        prenom: p.prenom, 
+        email: p.login, 
+        specialite: p.specialite 
+    })))
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewProfessor({ ...newProfessor, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const shuffleString = (str:string) => {
+    const arr = str.split(''); // Convert string to an array
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1)); // Random index
+      [arr[i], arr[j]] = [arr[j], arr[i]]; // Swap elements
+    }
+    return arr.join(''); // Convert array back to string
+  };  
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isEditing && editingId) {
       // Update existing professor
@@ -43,7 +61,9 @@ export function ProfessorManagement() {
       toast.success('Professeur modifié avec succès')
     } else {
       // Add new professor
-      setProfessors([...professors, { id: Date.now(), ...newProfessor }])
+      const newProfCode = newProfessor.email.split('@')[0];
+      const data = await addProfessor({...newProfessor, codeIdentification: newProfCode, login: newProfessor.email, motDePasse:shuffleString(newProfCode)})
+      setProfessors([...professors, { ...newProfessor, id: parseInt(data.id) }])
       toast.success('Professeur ajouté avec succès')
     }
     setNewProfessor({ nom: '', prenom: '', email: '', specialite: '' })
@@ -57,7 +77,8 @@ export function ProfessorManagement() {
     setEditingId(professor.id)
   }
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
+    await deleteProfessor(id);
     setProfessors(professors.filter(p => p.id !== id))
     toast.success('Professeur supprimé avec succès')
   }

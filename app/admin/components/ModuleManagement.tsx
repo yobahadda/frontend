@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchAllModules, fetchAllDepartments, addModule, deleteModule } from '@/services/api'
+import { Department } from '@/types'
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,27 +11,43 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from 'react-hot-toast'
 import { Plus, Edit, Trash2 } from 'lucide-react'
+import { set } from 'date-fns'
 
 interface Module {
   id: number
   nom: string
+  filiere_id: number
   filiere: string
   elements: string[]
 }
 
 export function ModuleManagement() {
   const [modules, setModules] = useState<Module[]>([])
-  const [newModule, setNewModule] = useState({ nom: '', filiere: '', elements: '' })
+  const [filieres, setFilieres] = useState<Department[]>([])
+  const [newModule, setNewModule] = useState({ nom: '', filiere: '', filiere_id: '', elements: '', semestre:1 })
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
 
-  useEffect(() => {
-    // Fetch modules from API
-    setModules([
-      { id: 1, nom: 'Programmation avancée', filiere: 'Informatique', elements: ['Java', 'Python'] },
-      { id: 2, nom: 'Analyse mathématique', filiere: 'Mathématiques', elements: ['Calcul différentiel', 'Intégration'] },
-    ])
+  useEffect(() => { 
+    loadData();
   }, [])
+
+  const loadData = async () => {
+    const retreivedModules = await fetchAllModules()
+    const retreivedDepartments = await fetchAllDepartments()
+    setFilieres(retreivedDepartments)
+    setModules(retreivedModules.map((module: any) => ({ 
+      id: module.id, 
+      nom: module.nom,
+      filiere_id: module.filiere_id,
+      elements: module.elements
+    })))
+  }
+
+  const getFiliereName = (id:number) => {
+    const filiere = filieres.find(f => f.id === id)
+    return filiere ? filiere.nom : 'Inconnu'
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewModule({ ...newModule, [e.target.name]: e.target.value })
@@ -39,41 +57,55 @@ export function ModuleManagement() {
     setNewModule({ ...newModule, filiere: value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isEditing && editingId) {
       // Update existing module
       setModules(modules.map(m => m.id === editingId ? { 
-        ...newModule, 
-        id: editingId, 
+        nom: newModule.nom,
+        filiere_id: parseInt(newModule.filiere_id),
+        id: editingId,
+        filiere: getFiliereName(parseInt(newModule.filiere)),
         elements: newModule.elements.split(',').map(el => el.trim()) 
       } : m))
       toast.success('Module modifié avec succès')
     } else {
-      // Add new module
+      const newData = await addModule({
+        nom: newModule.nom,
+        filiere_id: parseInt(newModule.filiere),
+        elements: newModule.elements.split(',').map(el => el.trim()),
+        semestre: newModule.semestre
+      })
+      console.log(newModule);
       setModules([...modules, { 
-        id: Date.now(), 
-        ...newModule, 
-        elements: newModule.elements.split(',').map(el => el.trim()) 
+        id: newData.id, 
+        elements: newModule.elements.split(',').map(el => el.trim()),
+        filiere_id: parseInt(newModule.filiere),
+        filiere: getFiliereName(parseInt(newModule.filiere)),
+        nom: newModule.nom
       }])
       toast.success('Module ajouté avec succès')
     }
-    setNewModule({ nom: '', filiere: '', elements: '' })
+    setNewModule({ nom: '', filiere: '', filiere_id: '', elements: '', semestre:1 })
     setIsEditing(false)
     setEditingId(null)
   }
 
-  const handleEdit = (module: Module) => {
+  const handleEdit = async (module: Module) => { //something wrong here
     setNewModule({
       nom: module.nom,
-      filiere: module.filiere,
-      elements: module.elements.join(', ')
-    })
+      filiere: getFiliereName(module.filiere_id),
+      filiere_id: module.filiere_id.toString(),
+      elements: module.elements.map((el: any) => el.nom).join(', '),
+      semestre: 1
+    });
+    console.log(newModule);
     setIsEditing(true)
     setEditingId(module.id)
   }
 
   const handleDelete = (id: number) => {
+    deleteModule(id)
     setModules(modules.filter(m => m.id !== id))
     toast.success('Module supprimé avec succès')
   }
@@ -104,19 +136,30 @@ export function ModuleManagement() {
                 <SelectValue placeholder="Sélectionner une filière" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Informatique">Informatique</SelectItem>
-                <SelectItem value="Mathématiques">Mathématiques</SelectItem>
-                {/* Add more departments as needed */}
+                {filieres.map(filiere => (
+                  <SelectItem key={filiere.id} value={(filiere.id).toString()}>{filiere.nom}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
-          <Input
-            placeholder="Éléments (séparés par des virgules)"
-            name="elements"
-            value={newModule.elements}
+          <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+            <Input
+              placeholder="Éléments (séparés par des virgules)"
+              name="elements"
+              value={newModule.elements}
+              onChange={handleInputChange}
+              required
+            />
+            <Input
+            placeholder="Semestre"
+            name="semestre"
+            type='number'
+            min={1}
+            value={newModule.semestre}
             onChange={handleInputChange}
             required
           />
+          </div>
           <Button type="submit" className="w-full">
             {isEditing ? 'Modifier' : 'Ajouter'} un Module
             <Plus className="ml-2 h-4 w-4" />
@@ -136,7 +179,7 @@ export function ModuleManagement() {
               {modules.map((module) => (
                 <TableRow key={module.id}>
                   <TableCell className="font-medium">{module.nom}</TableCell>
-                  <TableCell>{module.filiere}</TableCell>
+                  <TableCell>{getFiliereName(module.filiere_id)}</TableCell>
                   <TableCell>{module.elements.join(', ')}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

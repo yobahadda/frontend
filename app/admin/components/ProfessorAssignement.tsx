@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { fetchAllElements, fetchAllProfessors, fetchAllModules, fetchModuleElements, affectProfToEle, fetchAllAssignments, deleteAffectation } from '@/services/api'
+import { Professeur, Module, ModuleElement} from '@/types'
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -19,36 +21,74 @@ interface Assignment {
 export function ProfessorAssignment() {
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [newAssignment, setNewAssignment] = useState({ professor: '', module: '', element: '' })
-  const [professors, setProfessors] = useState<string[]>([])
-  const [modules, setModules] = useState<string[]>([])
-  const [elements, setElements] = useState<string[]>([])
+  const [professors, setProfessors] = useState<Professeur[]>([])
+  const [modules, setModules] = useState<Module[]>([])
+  const [elements, setElements] = useState<ModuleElement[]>([])
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
 
   useEffect(() => {
-    // Fetch assignments, professors, modules, and elements from API
-    setAssignments([
-      { id: 1, professor: 'Jean Dupont', module: 'Programmation avancée', element: 'Java' },
-      { id: 2, professor: 'Marie Martin', module: 'Analyse mathématique', element: 'Calcul différentiel' },
-    ])
-    setProfessors(['Jean Dupont', 'Marie Martin'])
-    setModules(['Programmation avancée', 'Analyse mathématique'])
-    setElements(['Java', 'Python', 'Calcul différentiel', 'Intégration'])
+    loadData();
   }, [])
 
-  const handleSelectChange = (value: string, field: string) => {
-    setNewAssignment({ ...newAssignment, [field]: value })
+  const handleSelectChange = async (value: string, field: string) => {
+    const newVal = field==='module' ? await loadElements(parseInt(value)) : value;
+    setNewAssignment({ ...newAssignment, [field]: newVal })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loadData = async () => {
+    const assigns = await fetchAllAssignments()
+    const eles = await fetchAllElements()
+    const profs = await fetchAllProfessors()
+    const modls = await fetchAllModules()
+    setModules(modls)
+    setProfessors(profs)
+    setElements(eles)
+    setAssignments(assigns.map((assign: any) => ({
+      id: assign.id,
+      professor: assign.professeur,
+      module: assign.module + " S" + (assign.semestre).toString(),
+      element: assign.elementDeModule
+    })))
+  }
+
+  const loadElements = async (id: number) => {
+    const elems = await fetchModuleElements(id)
+    setElements(elems)
+  }
+
+  const getProfName = (id:number) => {
+    const prof = professors.find(f => f.id === id)?.nom
+    return prof ? prof : 'Inconnu'
+  }
+
+  const getModuleName = (id:number) => {
+    const mod =  modules.find(f => f.id === id)?.nom
+    return mod ? mod : 'Inconnu'
+  }
+
+  const getEleName = async (id:number) => {
+    const ele =  elements.find(f => f.id === id)?.nom
+    return ele ? ele : 'Inconnu'
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isEditing && editingId) {
       // Update existing assignment
       setAssignments(assignments.map(a => a.id === editingId ? { ...newAssignment, id: editingId } : a))
       toast.success('Affectation modifiée avec succès')
     } else {
-      // Add new assignment
-      setAssignments([...assignments, { id: Date.now(), ...newAssignment }])
+      const data = await affectProfToEle({
+        elementId: newAssignment.element,
+        profId: newAssignment.professor
+      })
+      setAssignments([...assignments, { 
+        id: data.id, 
+        professor: getProfName(parseInt(newAssignment.professor)),
+        module: getModuleName(parseInt(newAssignment.module)),
+        element: await getEleName(parseInt(newAssignment.element))
+      }])
       toast.success('Affectation ajoutée avec succès')
     }
     setNewAssignment({ professor: '', module: '', element: '' })
@@ -62,9 +102,15 @@ export function ProfessorAssignment() {
     setEditingId(assignment.id)
   }
 
-  const handleDelete = (id: number) => {
-    setAssignments(assignments.filter(a => a.id !== id))
-    toast.success('Affectation supprimée avec succès')
+  const handleDelete = async (id: number) => {
+    try{
+      await deleteAffectation(id)
+      setAssignments(assignments.filter(a => a.id !== id))
+      toast.success('Affectation supprimée avec succès')
+    }catch(e){
+      console.error('Failed to delete affectation:', e)
+      toast.error('Erreur lors de la suppression de l\'affectation')
+    }
   }
 
   return (
@@ -87,7 +133,7 @@ export function ProfessorAssignment() {
               </SelectTrigger>
               <SelectContent>
                 {professors.map((prof) => (
-                  <SelectItem key={prof} value={prof}>{prof}</SelectItem>
+                  <SelectItem key={prof.id} value={(prof.id).toString()}>{prof.nom} {prof.prenom}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -97,7 +143,7 @@ export function ProfessorAssignment() {
               </SelectTrigger>
               <SelectContent>
                 {modules.map((mod) => (
-                  <SelectItem key={mod} value={mod}>{mod}</SelectItem>
+                  <SelectItem key={mod.id} value={(mod.id).toString()}>{mod.nom}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -107,7 +153,7 @@ export function ProfessorAssignment() {
               </SelectTrigger>
               <SelectContent>
                 {elements.map((elem) => (
-                  <SelectItem key={elem} value={elem}>{elem}</SelectItem>
+                  <SelectItem key={elem.id} value={(elem.id).toString()}>{elem.nom}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

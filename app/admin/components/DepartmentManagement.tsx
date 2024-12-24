@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Department } from '@/types'
+import { fetchAllDepartments, addDepartment, deleteDepartment } from '@/services/api'
 import { motion } from 'framer-motion'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,12 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from 'react-hot-toast'
 import { Plus, Edit, Trash2 } from 'lucide-react'
-
-interface Department {
-  id: number
-  nom: string
-  description: string
-}
+import { set } from 'date-fns'
 
 export function DepartmentManagement() {
   const [departments, setDepartments] = useState<Department[]>([])
@@ -22,18 +19,19 @@ export function DepartmentManagement() {
   const [editingId, setEditingId] = useState<number | null>(null)
 
   useEffect(() => {
-    // Fetch departments from API
-    setDepartments([
-      { id: 1, nom: 'Informatique', description: 'Département d\'informatique' },
-      { id: 2, nom: 'Mathématiques', description: 'Département de mathématiques' },
-    ])
+    loadDepartments();
   }, [])
+
+  const loadDepartments = async () => {
+    const data = await fetchAllDepartments();
+    setDepartments(data);
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewDepartment({ ...newDepartment, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isEditing && editingId) {
       // Update existing department
@@ -41,7 +39,8 @@ export function DepartmentManagement() {
       toast.success('Filière modifiée avec succès')
     } else {
       // Add new department
-      setDepartments([...departments, { id: Date.now(), ...newDepartment }])
+      const newData = await addDepartment(newDepartment)
+      setDepartments([...departments, { id: parseInt(newData.id), ...newDepartment}])
       toast.success('Filière ajoutée avec succès')
     }
     setNewDepartment({ nom: '', description: '' })
@@ -56,6 +55,7 @@ export function DepartmentManagement() {
   }
 
   const handleDelete = (id: number) => {
+    deleteDepartment(id)
     setDepartments(departments.filter(d => d.id !== id))
     toast.success('Filière supprimée avec succès')
   }

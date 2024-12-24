@@ -1,4 +1,4 @@
-export interface Professor {
+export interface Professeur {
     id: number;
     nom: string;
     prenom: string;
@@ -12,7 +12,7 @@ export interface Professor {
     id: number;
     nom: string;
     module_id: number;
-    coefficient: number;
+    coef: number;
   }
   
   export interface Module {
