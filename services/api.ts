@@ -170,7 +170,7 @@ export const deleteStudent = async (studentId: number) => {
 //   return response.data;
 // };
 
-// for evaluation
+// for affectations
 
 // fetch all professors with the function given above
 
@@ -199,4 +199,19 @@ export const affectProfToEle = async (affectation: any) => {
 export const deleteAffectation = async (id:number) => {
   const response = await api.delete(`/affectation/${id}`)
   return response.data
+}
+
+
+// for evaluation methods
+// fetch all elements with the function given above
+// fetch all modules with the function given above
+
+export const fetchAllEvaluations = async () => {
+  const response = await api.get('/evaluations');
+  return response.data;
+}
+
+export const addEvaluation = async (evaluation: any) => {
+  const response = await api.post('/evaluations', evaluation);
+  return response.data;
 }

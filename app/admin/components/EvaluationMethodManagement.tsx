@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { ModuleElement, Module } from '@/types'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -9,37 +10,52 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from 'react-hot-toast'
 import { Plus, Edit, Trash2 } from 'lucide-react'
+import { fetchAllModules, fetchAllElements, fetchAllEvaluations, fetchModuleElements, addEvaluation } from '@/services/api'
 
 interface EvaluationMethod {
   id: number
   nom: string
   coefficient: number
   module: string
+  elementDeModule: string
 }
 
 export function EvaluationMethodManagement() {
   const [evaluationMethods, setEvaluationMethods] = useState<EvaluationMethod[]>([])
-  const [newMethod, setNewMethod] = useState({ nom: '', coefficient: '', module: '' })
+  const [newMethod, setNewMethod] = useState({ nom: '', coefficient: '', module: '', elementDeModule: '' })
+  const [elements, setElements] = useState<ModuleElement[]>([])
+  const [modules, setModules] = useState<Module[]>([])
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
 
   useEffect(() => {
-    // Fetch evaluation methods from API
-    setEvaluationMethods([
-      { id: 1, nom: 'Examen final', coefficient: 0.6, module: 'Programmation avancée' },
-      { id: 2, nom: 'Contrôle continu', coefficient: 0.4, module: 'Analyse mathématique' },
-    ])
+    loadData();
   }, [])
+
+  const loadData = async () => {
+    const mods = await fetchAllModules()
+    const eles = await fetchAllElements()
+    const evals = await fetchAllEvaluations()
+    setModules(mods)
+    setElements(eles)
+    setEvaluationMethods(evals);
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMethod({ ...newMethod, [e.target.name]: e.target.value })
   }
 
-  const handleSelectChange = (value: string) => {
-    setNewMethod({ ...newMethod, module: value })
+  const handleSelectChange = async (value: string, name:string) => {
+    const newVal = name==='module' ? await loadElements(parseInt(value)) : value;
+    setNewMethod({ ...newMethod, [name]: value })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loadElements = async (id: number) => {
+    const elems = await fetchModuleElements(id)
+    setElements(elems)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isEditing && editingId) {
       // Update existing evaluation method
@@ -50,24 +66,43 @@ export function EvaluationMethodManagement() {
       } : m))
       toast.success('Modalité d\'évaluation modifiée avec succès')
     } else {
-      // Add new evaluation method
+      console.log(newMethod)
+      const newData = await addEvaluation({
+        nom: newMethod.nom,
+        coef: parseFloat(newMethod.coefficient),
+        elementId: parseInt(newMethod.elementDeModule),
+      })
       setEvaluationMethods([...evaluationMethods, { 
-        id: Date.now(), 
+        id: newData.id, 
         ...newMethod, 
+        elementDeModule: getEleName(parseInt(newMethod.elementDeModule)),
+        module: getModuleName(parseInt(newMethod.module)),
         coefficient: parseFloat(newMethod.coefficient) 
       }])
       toast.success('Modalité d\'évaluation ajoutée avec succès')
     }
-    setNewMethod({ nom: '', coefficient: '', module: '' })
+    setNewMethod({ nom: '', coefficient: '', module: '', elementDeModule: '' })
     setIsEditing(false)
     setEditingId(null)
   }
 
-  const handleEdit = (method: EvaluationMethod) => {
+  const getModuleName = (id:number) => {
+    const mod =  modules.find(f => f.id === id)?.nom
+    return mod ? mod : 'Inconnu'
+  }
+
+  const getEleName = (id:number) => {
+    const ele =  elements.find(f => f.id === id)?.nom
+    return ele ? ele : 'Inconnu'
+  }
+
+  const handleEdit = async (method: EvaluationMethod) => {
+    console.log(method)
     setNewMethod({
       nom: method.nom,
       coefficient: method.coefficient.toString(),
-      module: method.module
+      module: method.module,
+      elementDeModule: method.elementDeModule
     })
     setIsEditing(true)
     setEditingId(method.id)
@@ -111,16 +146,28 @@ export function EvaluationMethodManagement() {
               required
             />
           </div>
-          <Select onValueChange={handleSelectChange} value={newMethod.module}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Select onValueChange={(value) => handleSelectChange(value, 'module')} value={newMethod.module}>
             <SelectTrigger>
               <SelectValue placeholder="Sélectionner un module" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Programmation avancée">Programmation avancée</SelectItem>
-              <SelectItem value="Analyse mathématique">Analyse mathématique</SelectItem>
-              {/* Add more modules as needed */}
+                {modules.map((mod) => (
+                  <SelectItem key={mod.id} value={(mod.id).toString()}>{mod.nom}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
+          <Select onValueChange={(value) => handleSelectChange(value, 'elementDeModule')} value={newMethod.elementDeModule}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner un élément" />
+              </SelectTrigger>
+              <SelectContent>
+                {elements.map((elem) => (
+                  <SelectItem key={elem.id} value={(elem.id).toString()}>{elem.nom}</SelectItem>
+                ))}
+              </SelectContent>
+          </Select>
+          </div>
           <Button type="submit" className="w-full">
             {isEditing ? 'Modifier' : 'Ajouter'} une Modalité d'Évaluation
             <Plus className="ml-2 h-4 w-4" />
@@ -132,7 +179,7 @@ export function EvaluationMethodManagement() {
               <TableRow>
                 <TableHead>Nom</TableHead>
                 <TableHead>Coefficient</TableHead>
-                <TableHead>Module</TableHead>
+                <TableHead>Element</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -141,7 +188,7 @@ export function EvaluationMethodManagement() {
                 <TableRow key={method.id}>
                   <TableCell className="font-medium">{method.nom}</TableCell>
                   <TableCell>{method.coefficient}</TableCell>
-                  <TableCell>{method.module}</TableCell>
+                  <TableCell>{method.elementDeModule}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleEdit(method)}>

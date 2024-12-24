@@ -32,12 +32,8 @@ export interface Professeur {
     id: number;
     nom: string;
     prenom: string;
-    filiere: {
-      id: number;
-      nom: string;
-      description: string;
-    };
-    notes: any[];
+    email: string
+    filiere_nom: string
     imageUrl: string;
   }
   

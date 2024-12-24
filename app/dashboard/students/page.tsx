@@ -31,7 +31,7 @@ export default function StudentsPage() {
     const filtered = students.filter(student => 
       student.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.filiere.nom.toLowerCase().includes(searchTerm.toLowerCase())
+      student.filiere_nom.toLowerCase().includes(searchTerm.toLowerCase())
     )
     setFilteredStudents(filtered)
     setCurrentPage(1)
@@ -122,7 +122,7 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{student.nom}</TableCell>
                     <TableCell>{student.prenom}</TableCell>
-                    <TableCell>{student.filiere.nom}</TableCell>
+                    <TableCell>{student.filiere_nom}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
