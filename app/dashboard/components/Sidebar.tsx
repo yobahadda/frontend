@@ -34,7 +34,7 @@ export function Sidebar() {
             initial={{ opacity: isOpen ? 1 : 0 }}
             animate={{ opacity: isOpen ? 1 : 0 }}
           >
-            ENSA Dashboard
+            PROFESSEUR
           </motion.h1>
         </div>
         <nav className="flex-1 overflow-y-auto">

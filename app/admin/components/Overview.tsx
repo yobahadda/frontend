@@ -17,7 +17,7 @@ export function Overview() {
 
   const fetchData = async () => {
     setIsLoading(true)
-    // Simulating API calls
+    
     const studentsResponse = await fetch('/api/students/stats')
     const departmentsResponse = await fetch('/api/departments/stats')
     const gradesResponse = await fetch('/api/grades/stats')

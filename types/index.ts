@@ -34,22 +34,20 @@ export interface Student {
   id: number;
   nom: string;
   prenom: string;
-  filiere: {
-    id: number;
-    nom: string;
-    description: string;
-  };
-  notes: any[];
+  email: string;
+  filiere: Filiere;
+  anneeEtude: number;
   imageUrl: string;
+  notes: any[];
 }
 
 export interface Grade {
-  id: number;
-  etudiant_id: number;
-  element_id: number;
   note: number;
-  absent: boolean;
+  rattrapage_possible: boolean;
   valide: boolean;
+  element_id: number;
+  etudiant_id: number;
+  absent: boolean;
 }
 
 export interface EvaluationMethod {
@@ -75,5 +73,8 @@ export interface Filiere {
   id: number;
   nom: string;
   description: string;
+  modules: Module[];
 }
+
+export type ProfessorElements = ModuleElement[];
 

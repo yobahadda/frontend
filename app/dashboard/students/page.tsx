@@ -1,20 +1,34 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { fetchAllStudents } from '@/services/api'
+import { useSession } from '@/app/hooks/useSession'
+import { fetchStudentsByProfessor } from '@/services/api'
 import { Student } from '@/types'
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { motion } from "framer-motion"
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, Mail } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 const PAGE_SIZE = 10
 
+interface Student {
+  id: number
+  nom: string
+  prenom: string
+  email: string
+  imageUrl: string
+  anneeEtude: number
+  filiereId: number
+  filiereNom: string
+  filiereDescription: string
+}
+
 export default function StudentsPage() {
+  const { user, professor } = useSession()
+  console.log('Rendering StudentsPage');
   const [students, setStudents] = useState<Student[]>([])
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,32 +38,42 @@ export default function StudentsPage() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Student; direction: 'asc' | 'desc' } | null>(null)
 
   useEffect(() => {
-    loadStudents()
-  }, [])
+    console.log('Professor in StudentsPage:', professor);
+    if (professor?.id) {
+      console.log('Loading students for professor ID:', professor.id);
+      loadStudents(professor.id)
+    } else {
+      console.log('No professor ID available');
+    }
+  }, [professor])
+
+  const loadStudents = async (professorId: number) => {
+    try {
+      console.log('Fetching students for professor ID:', professorId);
+      setLoading(true)
+      const data = await fetchStudentsByProfessor(professorId)
+      console.log('Fetched students:', data);
+      setStudents(data)
+      setFilteredStudents(data)
+    } catch (err) {
+      console.error('Error loading students:', err)
+      setError('Failed to load students. Please try again later.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     const filtered = students.filter(student => 
       student.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.filiere.nom.toLowerCase().includes(searchTerm.toLowerCase())
+      student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.filiereNom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.filiereDescription.toLowerCase().includes(searchTerm.toLowerCase())
     )
     setFilteredStudents(filtered)
     setCurrentPage(1)
   }, [searchTerm, students])
-
-  const loadStudents = async () => {
-    try {
-      setLoading(true)
-      const data = await fetchAllStudents()
-      setStudents(data)
-      setFilteredStudents(data)
-    } catch (err) {
-      setError('Failed to load students. Please try again later.')
-      console.error('Error loading students:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSort = (key: keyof Student) => {
     let direction: 'asc' | 'desc' = 'asc'
@@ -74,7 +98,7 @@ export default function StudentsPage() {
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE)
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>
+    return <div className="flex justify-center items-center h-screen">Loading students...</div>
   }
 
   if (error) {
@@ -91,7 +115,7 @@ export default function StudentsPage() {
           <div className="mb-4 flex items-center">
             <Search className="mr-2 h-4 w-4 opacity-50" />
             <Input
-              placeholder="Rechercher un étudiant..."
+              placeholder="Rechercher par nom, prénom, email ou filière..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="max-w-sm"
@@ -108,11 +132,17 @@ export default function StudentsPage() {
                   <TableHead onClick={() => handleSort('prenom')} className="cursor-pointer">
                     Prénom {sortConfig?.key === 'prenom' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                   </TableHead>
-                  <TableHead>Filière</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead onClick={() => handleSort('anneeEtude')} className="cursor-pointer">
+                    Année d'étude {sortConfig?.key === 'anneeEtude' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </TableHead>
+                  <TableHead onClick={() => handleSort('filiereNom')} className="cursor-pointer">
+                    Filière {sortConfig?.key === 'filiereNom' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedStudents.map((student) => (
+                {Array.isArray(paginatedStudents) ? paginatedStudents.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell>
                       <Avatar>
@@ -122,9 +152,40 @@ export default function StudentsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{student.nom}</TableCell>
                     <TableCell>{student.prenom}</TableCell>
-                    <TableCell>{student.filiere.nom}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" className="p-0">
+                              <Mail className="h-4 w-4 mr-2" />
+                              {student.email.split('@')[0]}...
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{student.email}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                    <TableCell>{student.anneeEtude}</TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>{student.filiereNom}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{student.filiereDescription}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
                   </TableRow>
-                ))}
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={6}>No students found</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

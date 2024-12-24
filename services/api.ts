@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { Student, Module, ProfessorElements, Professor, Grade } from '@/types';
 
-const BASE_URL = 'http://localhost:8080/';
+const BASE_URL = 'http://localhost:8080';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -38,8 +39,10 @@ export const fetchGrades = async (elementId: number) => {
   return response.data;
 };
 
-export const submitGrades = async (grades: any[]) => {
+export const submitGrades = async (grades: Grade[]): Promise<void> => {
+  console.log('Submitting grades:', grades);
   const response = await api.post('/notes/bulk', grades);
+  console.log('Submit grades API response:', response.data);
   return response.data;
 };
 
@@ -63,9 +66,23 @@ export const fetchEvaluationMethods = async (elementId: number) => {
   return response.data;
 };
 
-export const fetchAllStudents = async () => {
+export const fetchAllStudents = async (): Promise<Student[]> => {
+  console.log('Fetching all students');
   const response = await api.get('/etudiants');
+  console.log('Students API response:', response.data);
   return response.data;
+};
+
+export const fetchStudentsByProfessor = async (professorId: number): Promise<Student[]> => {
+  console.log(`Fetching students for professor ${professorId}`);
+  try {
+    const response = await api.get(`etudiants/professeurs/${professorId}`);
+    console.log('Students API response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching students:', error);
+    throw error;
+  }
 };
 
 export const fetchAssignedStudents = async (professorId: number, elementId: number) => {
@@ -104,5 +121,19 @@ export const filterModulesByProfessor = (modules: Module[], professorId: number)
   return modules.filter(module => 
     module.elements.some(element => element.responsable.id === professorId)
   );
+};
+
+export const fetchElementsByProfessor = async (professorId: number): Promise<ProfessorElements> => {
+  console.log(`Fetching elements for professor ${professorId}`);
+  const response = await api.get(`/elements/professor/${professorId}`);
+  console.log('Elements API response:', response.data);
+  return response.data;
+};
+
+export const fetchStudentsByElement = async (elementId: number): Promise<Student[]> => {
+  console.log(`Fetching students for element ${elementId}`);
+  const response = await api.get(`/etudiants/by-element/${elementId}`);
+  console.log('Students by element API response:', response.data);
+  return response.data;
 };
 

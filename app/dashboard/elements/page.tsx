@@ -19,6 +19,7 @@ export default function ElementsPage() {
 
   useEffect(() => {
     if (professor?.id) {
+      console.log(professor.id)
       loadElements()
     }
   }, [professor])

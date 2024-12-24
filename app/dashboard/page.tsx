@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Overview } from "./components/Overview"
 import { RecentActivity } from "./components/RecentActivity"
 import { PerformanceChart } from "./components/PerformanceChart"
@@ -11,7 +11,7 @@ import { UpcomingEvents } from "./components/UpcomingEvents"
 import { QuickActions } from "./components/QuickActions"
 import { useSession } from '../hooks/useSession'
 import { fetchDashboardStats } from '@/services/api'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Users, BookOpen, GraduationCap, BarChart2 } from 'lucide-react'
 
 interface DashboardStats {
   totalStudents: number;
@@ -64,25 +64,25 @@ export default function DashboardPage() {
         <StatCard
           title="Total Étudiants"
           value={stats?.totalStudents}
-          description="Nombre total d'étudiants"
+          icon={Users}
           colorClass="from-blue-500 to-blue-600"
         />
         <StatCard
           title="Modules"
           value={stats?.totalModules}
-          description="Nombre total de modules"
+          icon={BookOpen}
           colorClass="from-green-500 to-green-600"
         />
         <StatCard
           title="Moyenne Générale"
           value={stats?.averageGrade.toFixed(2)}
-          description="Moyenne de tous les étudiants"
+          icon={GraduationCap}
           colorClass="from-yellow-500 to-yellow-600"
         />
         <StatCard
           title="Taux de Validation"
           value={`${(stats?.validationRate * 100).toFixed(1)}%`}
-          description="Pourcentage de modules validés"
+          icon={BarChart2}
           colorClass="from-purple-500 to-purple-600"
         />
       </div>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
   )
 }
 
-function StatCard({ title, value, description, colorClass }) {
+function StatCard({ title, value, icon: Icon, colorClass }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -164,12 +164,12 @@ function StatCard({ title, value, description, colorClass }) {
       transition={{ duration: 0.5 }}
     >
       <Card className={`bg-gradient-to-br ${colorClass} text-white`}>
-        <CardHeader>
-          <CardTitle className="text-2xl">{title}</CardTitle>
-          <CardDescription className="text-gray-100">{description}</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">{value}</p>
+          <div className="text-2xl font-bold">{value}</div>
         </CardContent>
       </Card>
     </motion.div>
