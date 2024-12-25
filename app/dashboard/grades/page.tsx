@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from '@/app/hooks/useSession'
 import { 
-  fetchModuleElements, 
+  fetchModuleElementsByProfessor, 
   fetchAssignedStudents, 
   submitGrades, 
   validateElementGrades,
@@ -34,13 +34,13 @@ export default function GradesPage() {
 
   useEffect(() => {
     if (professor?.id) {
-      loadElements()
+      loadElements(professor.id)
     }
   }, [professor])
 
-  const loadElements = async () => {
+  const loadElements = async (id:number) => {
     try {
-      const data = await fetchModuleElements(professor!.id)
+      const data = await fetchModuleElementsByProfessor(id)
       setElements(data)
     } catch (error) {
       console.error('Error loading elements:', error)
@@ -175,7 +175,7 @@ export default function GradesPage() {
                 <SelectContent>
                   {elements.map(element => (
                     <SelectItem key={element.id} value={element.id.toString()}>
-                      {element.nom}
+                      {element.nom} {element.filiere_nom}
                     </SelectItem>
                   ))}
                 </SelectContent>
