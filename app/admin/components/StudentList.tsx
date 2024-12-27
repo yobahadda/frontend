@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from 'react-hot-toast'
 import { Plus, Edit, Trash2, Search, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -22,6 +23,7 @@ interface Student {
   filiere_id: string
   email: string
   annee: number
+  imageUrl: string
 }
 
 const STUDENTS_PER_PAGE = 10
@@ -29,7 +31,7 @@ const STUDENTS_PER_PAGE = 10
 export function StudentList() {
   const [students, setStudents] = useState<Student[]>([])
   const [filieres, setFilieres] = useState<Department[]>([])
-  const [newStudent, setNewStudent] = useState<Omit<Student, 'id'>>({ nom: '', prenom: '', filiere: '', email: '', annee: 1, filiere_id: ''})
+  const [newStudent, setNewStudent] = useState<Omit<Student, 'id'>>({ nom: '', prenom: '', filiere: '', email: '', annee: 1, filiere_id: '', imageUrl: '' })
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -70,7 +72,8 @@ export function StudentList() {
           prenom: student.prenom,
           filiere: student.filiere_nom,
           email: student.email,
-          annee: getStudentYear(student.filiere_nom)
+          annee: getStudentYear(student.filiere_nom),
+          imageUrl : student.imageUrl
         }
       }))
     } catch (error) {
@@ -110,7 +113,7 @@ export function StudentList() {
         setStudents([...students, { id: newData.id, ...newStudent, filiere: filiere_nom }])
         toast.success('Étudiant ajouté avec succès')
       }
-      setNewStudent({ nom: '', prenom: '', filiere: '', email: '', annee: 1, filiere_id: ''})
+      setNewStudent({ nom: '', prenom: '', filiere: '', email: '', annee: 1, filiere_id: '', imageUrl: '' })
       setIsEditing(false)
       setEditingId(null)
     } catch (error) {
@@ -321,6 +324,7 @@ export function StudentList() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="cursor-pointer">Photo</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('nom')}>Nom</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('prenom')}>Prénom</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('filiere')}>Filière</TableHead>
@@ -332,6 +336,12 @@ export function StudentList() {
               <TableBody>
                 {currentStudents.map((student) => (
                   <TableRow key={student.id}>
+                    <TableCell>
+                      <Avatar>
+                        <AvatarImage src={student.imageUrl} alt={`${student.prenom} ${student.nom}`} />
+                        <AvatarFallback>{student.prenom[0]}{student.nom[0]}</AvatarFallback>
+                      </Avatar>
+                    </TableCell>
                     <TableCell className="font-medium">{student.nom}</TableCell>
                     <TableCell>{student.prenom}</TableCell>
                     <TableCell>{student.filiere}</TableCell>

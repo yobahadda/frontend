@@ -21,22 +21,40 @@ export const fetchStudentsByProfessor = async (professorId: number) => {
   return response.data;
 }
 
+export const fetchStudentsByElement = async (elementId: number) => {
+  const response = await api.get(`/etudiants/element/${elementId}`);
+  return response.data;
+}
+
 export const fetchModulesByProfessor = async (professorId: number) => {
   const response = await api.get(`/affectation/modules/${professorId}`);
   return response.data;
 }
 
-
+export const fetchModalitesByElement = async (elementId: number) => {
+  const response = await api.get(`/evaluations/element/${elementId}`);
+  return response.data;
+}
 
 export const fetchStudentsByFiliere = async (filiereId: number) => {
   const response = await api.get(`/etudiants/filiere/${filiereId}`);
   return response.data;
 };
 
-export const fetchGrades = async (elementId: number) => {
+export const fetchElementStatus = async (elementId: number) => {
+  const response = await api.get(`/affectation/status/element/${elementId}`);
+  return response.data;
+};
+
+export const fetchGradesByElement = async (elementId: number) => {
   const response = await api.get(`/notes/element/${elementId}`);
   return response.data;
 };
+
+
+
+
+
 
 export const submitGrades = async (grades: any[]) => {
   const response = await api.post('/notes/bulk', grades);
@@ -58,11 +76,6 @@ export const fetchDepartments = async () => {
   return response.data;
 };
 
-export const fetchEvaluationMethods = async (elementId: number) => {
-  const response = await api.get(`/modalites-evaluation/element/${elementId}`);
-  return response.data;
-};
-
 export const fetchAssignedStudents = async (professorId: number, elementId: number) => {
   const response = await api.get(`/professeurs/${professorId}/elements/${elementId}/etudiants`);
   return response.data;
@@ -80,10 +93,6 @@ export const exportElementGrades = async (elementId: number, format: 'excel' | '
   return response.data;
 };
 
-export const fetchElementStatus = async (elementId: number) => {
-  const response = await api.get(`/elementsDeModule/${elementId}/status`);
-  return response.data;
-};
 
 export const fetchDashboardStats = async (professorId: number) => {
   const response = await api.get(`/statistics/dashboard/${professorId}`);
@@ -99,6 +108,7 @@ export const fetchDetailedStatistics = async (professorId: number) => {
 
 
 
+// ADMIN PART
 // What the administator can do
 // for professors
 export const fetchAllProfessors = async () => {

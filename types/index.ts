@@ -46,13 +46,14 @@ export interface Professeur {
     note: number;
     absent: boolean;
     valide: boolean;
+    private EtudiantDTO etudiant;
   }
   
   export interface EvaluationMethod {
     id: number;
     nom: string;
     coefficient: number;
-    element_id: number;
+    element: string;
   }
   
   export interface ProfessorAssignment {
