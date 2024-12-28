@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from '@/app/hooks/useSession'
-import { fetchElementsByProfessor, fetchStudentsByElement, fetchEvaluationMethods, fetchGrades } from '@/services/api'
+import { fetchElementsByProfessor, fetchStudentsByElement, fetchEvaluationMethods } from '@/services/api'
 import { ModuleElement, Student, Grade, EvaluationMethod } from '@/types'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,7 +27,6 @@ export default function GradesPage() {
   const [evaluationMethods, setEvaluationMethods] = useState<EvaluationMethod[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [gradesExist, setGradesExist] = useState(false); // Added state to track existing grades
 
   useEffect(() => {
     if (professor?.id) {
@@ -52,27 +51,15 @@ export default function GradesPage() {
     setSelectedModality('');
     setLoading(true);
     try {
-      const [studentsData, methodsData, gradesData] = await Promise.all([
+      const [studentsData, methodsData] = await Promise.all([
         fetchStudentsByElement(parseInt(elementId)),
-        fetchEvaluationMethods(parseInt(elementId)),
-        fetchGrades(parseInt(elementId)).catch(error => {
-          console.error('Error fetching grades:', error);
-          return []; // Return an empty array if grades fetch fails
-        })
+        fetchEvaluationMethods(parseInt(elementId))
       ]);
       setStudents(studentsData);
       setEvaluationMethods(methodsData);
-      setGradesExist(gradesData.length > 0); // Update gradesExist state
-
-      // Initialize grades with existing data or default values
       const initialGrades = studentsData.reduce((acc, student) => {
         acc[student.id] = methodsData.reduce((gradeAcc, method) => {
-          const existingGrade = gradesData.find(g => g.etudiant.id === student.id && g.modaliteEvaluation.id === method.id);
-          gradeAcc[method.id] = existingGrade ? {
-            ...existingGrade,
-            valide: existingGrade.note >= 10,
-            rattrapagePossible: existingGrade.note > 0 && existingGrade.note < 10
-          } : {
+          gradeAcc[method.id] = { 
             note: 0,
             absent: false,
             valide: false,
@@ -109,14 +96,14 @@ export default function GradesPage() {
         const noteValue = Math.min(20, Math.max(0, parseFloat(value) || 0))
         updatedGrade.note = noteValue
         updatedGrade.valide = noteValue >= 10
-        updatedGrade.rattrapagePossible = noteValue < 10 && noteValue > 0
+        updatedGrade.rattrapage_possible = noteValue < 10 && noteValue > 0
       }
 
       if (field === 'absent') {
         if (value) {
           updatedGrade.note = 0
           updatedGrade.valide = false
-          updatedGrade.rattrapagePossible = false
+          updatedGrade.rattrapage_possible = false
         }
       }
 
@@ -133,17 +120,16 @@ export default function GradesPage() {
   const handleSubmit = async () => {
     try {
       setSaving(true);
-      const gradesToSubmit = Object.values(grades)
-        .flatMap(studentGrades => Object.values(studentGrades))
-        .filter(grade => grade.note !== 0 || grade.absent) // Only submit non-zero grades or absent marks
-        .map(grade => ({
+      const gradesToSubmit = Object.values(grades).flatMap(studentGrades => 
+        Object.values(studentGrades).map(grade => ({
           etudiant: { id: grade.etudiant_id },
-          modaliteEvaluation: { id: grade.modaliteEvaluation.id },
+          modaliteEvaluation: grade.modaliteEvaluation,
           note: grade.note,
           absent: grade.absent
-        }));
+        }))
+      );
 
-      const response = await fetch(`http://127.0.0.1:8080/notes/bulk/${selectedElement}`, {
+      const response = await fetch(`http://localhost:8080/notes/by-element/${selectedElement}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,8 +142,6 @@ export default function GradesPage() {
       }
 
       toast.success('Notes enregistrées avec succès');
-      // Refresh grades after successful submission
-      handleElementChange(selectedElement);
     } catch (error) {
       console.error('Error submitting grades:', error);
       toast.error('Erreur lors de l\'enregistrement des notes');
@@ -261,7 +245,7 @@ export default function GradesPage() {
                                 value={grades[student.id]?.[parseInt(selectedModality)]?.note || ''}
                                 onChange={(e) => handleGradeChange(student.id, 'note', e.target.value)}
                                 className="w-24 text-center"
-                                disabled={grades[student.id]?.[parseInt(selectedModality)]?.absent || gradesExist}
+                                disabled={grades[student.id]?.[parseInt(selectedModality)]?.absent}
                               />
                             </TableCell>
                             <TableCell>
@@ -272,7 +256,6 @@ export default function GradesPage() {
                                       <Checkbox
                                         checked={grades[student.id]?.[parseInt(selectedModality)]?.absent || false}
                                         onCheckedChange={(checked) => handleGradeChange(student.id, 'absent', checked)}
-                                        disabled={gradesExist}
                                       />
                                     </div>
                                   </TooltipTrigger>
@@ -284,9 +267,9 @@ export default function GradesPage() {
                             </TableCell>
                             <TableCell>
                               {grades[student.id]?.[parseInt(selectedModality)]?.valide ? (
-                                <Badge variant="success">Validé</Badge>
-                              ) : grades[student.id]?.[parseInt(selectedModality)]?.rattrapagePossible ? (
-                                <Badge variant="warning">Rattrapage</Badge>
+                                <Badge variant="default">Validé</Badge>
+                              ) : grades[student.id]?.[parseInt(selectedModality)]?.rattrapage_possible ? (
+                                <Badge variant="secondary">Rattrapage</Badge>
                               ) : (
                                 <Badge variant="destructive">Non validé</Badge>
                               )}

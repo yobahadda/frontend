@@ -2,38 +2,63 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from '@/app/hooks/useSession'
-import { fetchModuleElementsByProfessor } from '@/services/api'
-import { ModuleElement } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ChevronRight } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import Link from 'next/link'
 
+interface Modalite {
+  id: number
+  nom: string
+  coefficient: number
+  description: string
+}
+
+interface Element {
+  id: number
+  nom: string
+  coefficient: number
+  responsable: {
+    id: number
+    nom: string
+    prenom: string
+    specialite: string
+    codeIdentification: string
+    login: string
+    imageUrl: string
+  }
+}
+
+interface ElementWithModalites {
+  element: Element
+  modalites: Modalite[]
+}
+
 export default function ElementsPage() {
   const { professor } = useSession()
-  const [elements, setElements] = useState<ModuleElement[]>([])
+  const [elementsWithModalites, setElementsWithModalites] = useState<ElementWithModalites[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (professor?.id) {
-      console.log(professor.id)
-      loadElements()
+      loadElementsWithModalites(professor.id)
     }
   }, [professor])
 
-  const loadElements = async () => {
+  const loadElementsWithModalites = async (professorId: number) => {
     try {
       setLoading(true)
-      console.log('Fetching module elements...')
-      const data = await fetchModuleElementsByProfessor(professor!.id)
-      console.log('Module elements data:', data)
-      setElements(data)
+      const response = await fetch(`http://127.0.0.1:8080/elements/professor/${professorId}/with-modalites`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch elements with modalites')
+      }
+      const data = await response.json()
+      setElementsWithModalites(data)
     } catch (error) {
-      console.error('Error loading elements:', error)
-      toast.error('Erreur lors du chargement des éléments')
+      console.error('Error loading elements with modalites:', error)
+      toast.error('Erreur lors du chargement des éléments et modalités')
     } finally {
       setLoading(false)
     }
@@ -43,14 +68,12 @@ export default function ElementsPage() {
     return <div className="flex justify-center items-center h-screen">Chargement...</div>
   }
 
-  console.log('Current elements state:', elements)
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Mes Éléments de Module</h1>
       <Card className="hover:shadow-lg transition-shadow">
         <CardHeader>
-          <CardTitle>Éléments</CardTitle>
+          <CardTitle>Éléments et Modalités d'Évaluation</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -58,28 +81,32 @@ export default function ElementsPage() {
               <TableRow>
                 <TableHead>Élément</TableHead>
                 <TableHead>Coefficient</TableHead>
-                <TableHead>Responsable</TableHead>
+                <TableHead>Modalités d'Évaluation</TableHead>
                 <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {elements.map((element) => (
+              {elementsWithModalites.map(({ element, modalites }) => (
                 <TableRow key={element.id}>
                   <TableCell>{element.nom}</TableCell>
                   <TableCell>{element.coefficient}</TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={element.responsable.imageUrl} alt={`${element.responsable.prenom} ${element.responsable.nom}`} />
-                        <AvatarFallback>{element.responsable.prenom[0]}{element.responsable.nom[0]}</AvatarFallback>
-                      </Avatar>
-                      <span>{element.responsable.prenom} {element.responsable.nom}</span>
-                    </div>
+                    {modalites.length > 0 ? (
+                      <ul>
+                        {modalites.map((modalite) => (
+                          <li key={modalite.id}>
+                            {modalite.nom} (Coefficient: {modalite.coefficient})
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      "Aucune modalité définie"
+                    )}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/dashboard/elements/${element.id}`}>
+                    <Link href={`/dashboard/elements/${element.id}/saisie-notes`} passHref>
                       <Button variant="outline" size="sm">
-                        Détails
+                        Saisir les notes
                         <ChevronRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>

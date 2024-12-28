@@ -22,6 +22,7 @@ export interface Module {
   semestre: number;
   anneeUniversitaire: string;
   elements: ModuleElement[];
+  Filiere: Filiere;
 }
 
 export interface Department {
@@ -42,12 +43,15 @@ export interface Student {
 }
 
 export interface Grade {
+  etudiant: any;
   note: number;
   rattrapage_possible: boolean;
   valide: boolean;
   element_id: number;
   etudiant_id: number;
   absent: boolean;
+  // modaliteEvaluation: { id: number };
+  modaliteEvaluation: { id: number };
 }
 
 export interface EvaluationMethod {
@@ -74,6 +78,13 @@ export interface Filiere {
   nom: string;
   description: string;
   modules: Module[];
+}
+
+export interface ModuleElement {
+  id: number;
+  nom: string;
+  coefficient: number;
+  responsable: Professor;
 }
 
 export type ProfessorElements = ModuleElement[];

@@ -81,7 +81,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Taux de Validation"
-          value={`${(stats?.validationRate * 100).toFixed(1)}%`}
+          value={`${((stats?.validationRate ?? 0) * 100).toFixed(1)}%`}
           icon={BarChart2}
           colorClass="from-purple-500 to-purple-600"
         />

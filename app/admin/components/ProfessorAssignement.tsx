@@ -7,64 +7,89 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from 'react-hot-toast'
-import { Plus, Edit, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Loader2 } from 'lucide-react'
+import { fetchProfessors, fetchAllElements, createAssignment, fetchAssignments, deleteAssignment } from '@/services/api'
+import { Professor, ModuleElement } from '@/types'
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 interface Assignment {
   id: number
-  professor: string
-  module: string
-  element: string
+  professeur: Professor
+  element: ModuleElement
 }
 
 export function ProfessorAssignment() {
+  const [professors, setProfessors] = useState<Professor[]>([])
+  const [elements, setElements] = useState<ModuleElement[]>([])
   const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [newAssignment, setNewAssignment] = useState({ professor: '', module: '', element: '' })
-  const [professors, setProfessors] = useState<string[]>([])
-  const [modules, setModules] = useState<string[]>([])
-  const [elements, setElements] = useState<string[]>([])
-  const [isEditing, setIsEditing] = useState(false)
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [selectedProfessor, setSelectedProfessor] = useState<string>('')
+  const [selectedElement, setSelectedElement] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    // Fetch assignments, professors, modules, and elements from API
-    setAssignments([
-      { id: 1, professor: 'Jean Dupont', module: 'Programmation avancée', element: 'Java' },
-      { id: 2, professor: 'Marie Martin', module: 'Analyse mathématique', element: 'Calcul différentiel' },
-    ])
-    setProfessors(['Jean Dupont', 'Marie Martin'])
-    setModules(['Programmation avancée', 'Analyse mathématique'])
-    setElements(['Java', 'Python', 'Calcul différentiel', 'Intégration'])
+    loadData()
   }, [])
 
-  const handleSelectChange = (value: string, field: string) => {
-    setNewAssignment({ ...newAssignment, [field]: value })
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (isEditing && editingId) {
-      // Update existing assignment
-      setAssignments(assignments.map(a => a.id === editingId ? { ...newAssignment, id: editingId } : a))
-      toast.success('Affectation modifiée avec succès')
-    } else {
-      // Add new assignment
-      setAssignments([...assignments, { id: Date.now(), ...newAssignment }])
-      toast.success('Affectation ajoutée avec succès')
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      const [professorsData, elementsData, assignmentsData] = await Promise.all([
+        fetchProfessors(),
+        fetchAllElements(),
+        fetchAssignments()
+      ])
+      setProfessors(professorsData)
+      setElements(elementsData)
+      setAssignments(assignmentsData)
+    } catch (error) {
+      console.error('Error loading data:', error)
+      toast.error('Erreur lors du chargement des données')
+    } finally {
+      setLoading(false)
     }
-    setNewAssignment({ professor: '', module: '', element: '' })
-    setIsEditing(false)
-    setEditingId(null)
   }
 
-  const handleEdit = (assignment: Assignment) => {
-    setNewAssignment(assignment)
-    setIsEditing(true)
-    setEditingId(assignment.id)
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProfessor || !selectedElement) {
+      toast.error('Veuillez sélectionner un professeur et un élément')
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      const newAssignment = await createAssignment(parseInt(selectedElement), parseInt(selectedProfessor))
+      setAssignments([...assignments, newAssignment])
+      toast.success('Affectation ajoutée avec succès')
+      setSelectedProfessor('')
+      setSelectedElement('')
+    } catch (error) {
+      console.error('Error creating assignment:', error)
+      toast.error('Erreur lors de l\'ajout de l\'affectation')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleDelete = (id: number) => {
-    setAssignments(assignments.filter(a => a.id !== id))
-    toast.success('Affectation supprimée avec succès')
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteAssignment(id)
+      setAssignments(assignments.filter(a => a.id !== id))
+      toast.success('Affectation supprimée avec succès')
+    } catch (error) {
+      console.error('Error deleting assignment:', error)
+      toast.error('Erreur lors de la suppression de l\'affectation')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -80,41 +105,44 @@ export function ProfessorAssignment() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Select onValueChange={(value) => handleSelectChange(value, 'professor')} value={newAssignment.professor}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select onValueChange={setSelectedProfessor} value={selectedProfessor}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un professeur" />
               </SelectTrigger>
               <SelectContent>
                 {professors.map((prof) => (
-                  <SelectItem key={prof} value={prof}>{prof}</SelectItem>
+                  <SelectItem key={prof.id} value={prof.id.toString()}>
+                    {prof.prenom} {prof.nom}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select onValueChange={(value) => handleSelectChange(value, 'module')} value={newAssignment.module}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner un module" />
-              </SelectTrigger>
-              <SelectContent>
-                {modules.map((mod) => (
-                  <SelectItem key={mod} value={mod}>{mod}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select onValueChange={(value) => handleSelectChange(value, 'element')} value={newAssignment.element}>
+            <Select onValueChange={setSelectedElement} value={selectedElement}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner un élément" />
               </SelectTrigger>
               <SelectContent>
                 {elements.map((elem) => (
-                  <SelectItem key={elem} value={elem}>{elem}</SelectItem>
+                  <SelectItem key={elem.id} value={elem.id.toString()}>
+                    {elem.nom}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <Button type="submit" className="w-full">
-            {isEditing ? 'Modifier' : 'Ajouter'} une Affectation
-            <Plus className="ml-2 h-4 w-4" />
+          <Button type="submit" className="w-full" disabled={submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Ajout en cours...
+              </>
+            ) : (
+              <>
+                Ajouter une Affectation
+                <Plus className="ml-2 h-4 w-4" />
+              </>
+            )}
           </Button>
         </motion.form>
         <div className="rounded-md border">
@@ -122,7 +150,6 @@ export function ProfessorAssignment() {
             <TableHeader>
               <TableRow>
                 <TableHead>Professeur</TableHead>
-                <TableHead>Module</TableHead>
                 <TableHead>Élément</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -130,18 +157,38 @@ export function ProfessorAssignment() {
             <TableBody>
               {assignments.map((assignment) => (
                 <TableRow key={assignment.id}>
-                  <TableCell className="font-medium">{assignment.professor}</TableCell>
-                  <TableCell>{assignment.module}</TableCell>
-                  <TableCell>{assignment.element}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(assignment)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(assignment.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={assignment.professeur.imageUrl} alt={`${assignment.professeur.prenom} ${assignment.professeur.nom}`} />
+                        <AvatarFallback>{assignment.professeur.prenom[0]}{assignment.professeur.nom[0]}</AvatarFallback>
+                      </Avatar>
+                      <span>{assignment.professeur.prenom} {assignment.professeur.nom}</span>
                     </div>
+                  </TableCell>
+                  <TableCell>{assignment.element.nom}</TableCell>
+                  <TableCell>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Êtes-vous sûr de vouloir supprimer cette affectation ? Cette action ne peut pas être annulée.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDelete(assignment.id)}>
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}

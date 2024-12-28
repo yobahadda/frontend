@@ -83,7 +83,7 @@ export function ProfessorManagement() {
         }
         toast.success('Professeur ajouté avec succès')
       }
-      fetchProfessors() 
+      fetchProfessors() // Refresh the list
       setNewProfessor({
         nom: '',
         prenom: '',

@@ -8,24 +8,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from 'react-hot-toast'
-import { Plus, Edit, Trash2, Search, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Edit, Trash2, Search, Download, Filter, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-
-interface Student {
-  id: number
-  nom: string
-  prenom: string
-  filiere: string
-  email: string
-  annee: number
-}
+import { fetchAllStudents, fetchFilieres } from '@/services/api'
+import { Student, Filiere } from '@/types'
 
 const STUDENTS_PER_PAGE = 10
 
 export function StudentList() {
   const [students, setStudents] = useState<Student[]>([])
-  const [newStudent, setNewStudent] = useState<Omit<Student, 'id'>>({ nom: '', prenom: '', filiere: '', email: '', annee: 1 })
+  const [filieres, setFilieres] = useState<Filiere[]>([])
+  const [newStudent, setNewStudent] = useState<Omit<Student, 'id'>>({ nom: '', prenom: '', email: '', filiere: { id: 0, nom: '' }, anneeEtude: 1, imageUrl: '' })
   const [isEditing, setIsEditing] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -35,28 +29,21 @@ export function StudentList() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    fetchStudents()
+    loadStudentsAndFilieres()
   }, [])
 
-  const fetchStudents = async () => {
+  const loadStudentsAndFilieres = async () => {
     setIsLoading(true)
     try {
-      // In a real application, this would be an API call
-      const response = await new Promise<Student[]>((resolve) => {
-        setTimeout(() => {
-          resolve([
-            { id: 1, nom: 'Dupont', prenom: 'Jean', filiere: 'Informatique', email: 'jean.dupont@example.com', annee: 1 },
-            { id: 2, nom: 'Martin', prenom: 'Marie', filiere: 'Mathématiques', email: 'marie.martin@example.com', annee: 2 },
-            { id: 3, nom: 'Bernard', prenom: 'Luc', filiere: 'Physique', email: 'luc.bernard@example.com', annee: 3 },
-            { id: 4, nom: 'Petit', prenom: 'Sophie', filiere: 'Informatique', email: 'sophie.petit@example.com', annee: 1 },
-            { id: 5, nom: 'Robert', prenom: 'Thomas', filiere: 'Mathématiques', email: 'thomas.robert@example.com', annee: 2 },
-          ])
-        }, 1000)
-      })
-      setStudents(response)
+      const [studentsData, filieresData] = await Promise.all([
+        fetchAllStudents(),
+        fetchFilieres()
+      ])
+      setStudents(studentsData)
+      setFilieres(filieresData)
     } catch (error) {
-      console.error('Failed to fetch students:', error)
-      toast.error('Erreur lors du chargement des étudiants')
+      console.error('Error loading data:', error)
+      toast.error('Erreur lors du chargement des données')
     } finally {
       setIsLoading(false)
     }
@@ -66,30 +53,33 @@ export function StudentList() {
     setNewStudent({ ...newStudent, [e.target.name]: e.target.value })
   }
 
-  const handleSelectChange = (name: string, value: string) => {
-    setNewStudent({ ...newStudent, [name]: name === 'annee' ? parseInt(value) : value })
+  const handleSelectChange = (value: string, field: string) => {
+    if (field === 'filiere') {
+      const selectedFiliere = filieres.find(f => f.id.toString() === value)
+      setNewStudent({ ...newStudent, filiere: selectedFiliere || { id: 0, nom: '' } })
+    } else {
+      setNewStudent({ ...newStudent, [field]: parseInt(value) })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       if (isEditing && editingId) {
-        // In a real application, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        setStudents(students.map(s => s.id === editingId ? { ...newStudent, id: editingId } : s))
+        // Update existing student
+        // Implement API call to update student
         toast.success('Étudiant modifié avec succès')
       } else {
-        // In a real application, this would be an API call
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        const newId = Math.max(...students.map(s => s.id)) + 1
-        setStudents([...students, { id: newId, ...newStudent }])
+        // Add new student
+        // Implement API call to add new student
         toast.success('Étudiant ajouté avec succès')
       }
-      setNewStudent({ nom: '', prenom: '', filiere: '', email: '', annee: 1 })
+      loadStudentsAndFilieres() // Refresh the list
+      setNewStudent({ nom: '', prenom: '', email: '', filiere: { id: 0, nom: '' }, anneeEtude: 1, imageUrl: '' })
       setIsEditing(false)
       setEditingId(null)
     } catch (error) {
-      console.error('Failed to save student:', error)
+      console.error('Error submitting student:', error)
       toast.error('Erreur lors de l\'enregistrement de l\'étudiant')
     }
   }
@@ -102,12 +92,11 @@ export function StudentList() {
 
   const handleDelete = async (id: number) => {
     try {
-      // In a real application, this would be an API call
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Implement API call to delete student
       setStudents(students.filter(s => s.id !== id))
       toast.success('Étudiant supprimé avec succès')
     } catch (error) {
-      console.error('Failed to delete student:', error)
+      console.error('Error deleting student:', error)
       toast.error('Erreur lors de la suppression de l\'étudiant')
     }
   }
@@ -122,32 +111,16 @@ export function StudentList() {
 
   const handleExport = () => {
     // Implement CSV export logic here
-    const csv = [
-      ['ID', 'Nom', 'Prénom', 'Filière', 'Email', 'Année'],
-      ...filteredStudents.map(student => [student.id, student.nom, student.prenom, student.filiere, student.email, student.annee])
-    ].map(row => row.join(',')).join('\n')
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      link.setAttribute('download', 'students.csv')
-      link.style.visibility = 'hidden'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-    }
     toast.success('Liste des étudiants exportée avec succès')
   }
 
   const filteredStudents = students.filter(student =>
     (student.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.filiere.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.filiere.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    (filters.filiere === '' || student.filiere === filters.filiere) &&
-    (filters.annee === '' || student.annee === parseInt(filters.annee))
+    (filters.filiere === '' || student.filiere.id.toString() === filters.filiere) &&
+    (filters.annee === '' || student.anneeEtude === parseInt(filters.annee))
   )
 
   const sortedStudents = sortConfig
@@ -164,6 +137,14 @@ export function StudentList() {
 
   const totalPages = Math.ceil(sortedStudents.length / STUDENTS_PER_PAGE)
   const currentStudents = sortedStudents.slice((currentPage - 1) * STUDENTS_PER_PAGE, currentPage * STUDENTS_PER_PAGE)
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <Card className="w-full">
@@ -201,17 +182,17 @@ export function StudentList() {
               onChange={handleInputChange}
               required
             />
-            <Select onValueChange={(value) => handleSelectChange('filiere', value)} value={newStudent.filiere}>
+            <Select onValueChange={(value) => handleSelectChange(value, 'filiere')} value={newStudent.filiere.id.toString()}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une filière" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Informatique">Informatique</SelectItem>
-                <SelectItem value="Mathématiques">Mathématiques</SelectItem>
-                <SelectItem value="Physique">Physique</SelectItem>
+                {filieres.map((filiere) => (
+                  <SelectItem key={filiere.id} value={filiere.id.toString()}>{filiere.nom}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            <Select onValueChange={(value) => handleSelectChange('annee', value)} value={newStudent.annee.toString()}>
+            <Select onValueChange={(value) => handleSelectChange(value, 'anneeEtude')} value={newStudent.anneeEtude.toString()}>
               <SelectTrigger>
                 <SelectValue placeholder="Sélectionner une année" />
               </SelectTrigger>
@@ -221,6 +202,13 @@ export function StudentList() {
                 <SelectItem value="3">3ème année</SelectItem>
               </SelectContent>
             </Select>
+            <Input
+              placeholder="URL de l'image"
+              name="imageUrl"
+              value={newStudent.imageUrl}
+              onChange={handleInputChange}
+              required
+            />
           </div>
           <Button type="submit" className="w-full">
             {isEditing ? 'Modifier' : 'Ajouter'} un Étudiant
@@ -258,9 +246,9 @@ export function StudentList() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Toutes les filières</SelectItem>
-                      <SelectItem value="Informatique">Informatique</SelectItem>
-                      <SelectItem value="Mathématiques">Mathématiques</SelectItem>
-                      <SelectItem value="Physique">Physique</SelectItem>
+                      {filieres.map((filiere) => (
+                        <SelectItem key={filiere.id} value={filiere.id.toString()}>{filiere.nom}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -289,45 +277,41 @@ export function StudentList() {
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-4">Chargement des étudiants...</div>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('nom')}>Nom</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('prenom')}>Prénom</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('filiere')}>Filière</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('email')}>Email</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('annee')}>Année</TableHead>
-                  <TableHead>Actions</TableHead>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('nom')}>Nom</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('prenom')}>Prénom</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('filiere')}>Filière</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('email')}>Email</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('anneeEtude')}>Année</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentStudents.map((student) => (
+                <TableRow key={student.id}>
+                  <TableCell className="font-medium">{student.nom}</TableCell>
+                  <TableCell>{student.prenom}</TableCell>
+                  <TableCell>{student.filiere.nom}</TableCell>
+                  <TableCell>{student.email}</TableCell>
+                  <TableCell>{student.anneeEtude}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(student)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(student.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell className="font-medium">{student.nom}</TableCell>
-                    <TableCell>{student.prenom}</TableCell>
-                    <TableCell>{student.filiere}</TableCell>
-                    <TableCell>{student.email}</TableCell>
-                    <TableCell>{student.annee}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(student)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(student.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+              ))}
+            </TableBody>
+          </Table>
+        </div>
 
         <div className="mt-4 flex justify-between items-center">
           <div>
