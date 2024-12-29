@@ -11,17 +11,17 @@ const api = axios.create({
 
 //What the professor can do
 
-export const fetchModuleElementsByProfessor = async (professorId: number) => {
+export const fetchModuleElementsByProfessor = async (professorId: number) => { //used
   const response = await api.get(`/affectation/elements/${professorId}`);
   return response.data;
 };
 
-export const fetchStudentsByProfessor = async (professorId: number) => {
+export const fetchStudentsByProfessor = async (professorId: number) => { //used
   const response = await api.get(`/affectation/etudiants/${professorId}`);
   return response.data;
 }
 
-export const fetchStudentsByElement = async (elementId: number) => {
+export const fetchStudentsByElement = async (elementId: number) => { //used
   const response = await api.get(`/etudiants/element/${elementId}`);
   return response.data;
 }
@@ -31,7 +31,7 @@ export const fetchModulesByProfessor = async (professorId: number) => {
   return response.data;
 }
 
-export const fetchModalitesByElement = async (elementId: number) => {
+export const fetchEvaluationsByElement = async (elementId: number) => {
   const response = await api.get(`/evaluations/element/${elementId}`);
   return response.data;
 }
@@ -46,20 +46,24 @@ export const fetchElementStatus = async (elementId: number) => {
   return response.data;
 };
 
-export const fetchGradesByElement = async (elementId: number) => {
+export const fetchGradesByElement = async (elementId: number) => { // for general grade; i will do it later
   const response = await api.get(`/notes/element/${elementId}`);
   return response.data;
 };
 
-
-
-
-
+export const fetchGradesByElementAndEvaluation = async (elementId: number, evaluationId: number) => {
+  const response = await api.get(`/notes/element/${elementId}/evaluation/${evaluationId}`);
+  return response.data;
+}
 
 export const submitGrades = async (grades: any[]) => {
-  const response = await api.post('/notes/bulk', grades);
+  const response = await api.post('/notes', grades);
   return response.data;
 };
+
+
+
+
 
 export const updateGrade = async (gradeId: number, data: any) => {
   const response = await api.put(`/notes/${gradeId}`, data);

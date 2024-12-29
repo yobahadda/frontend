@@ -41,19 +41,19 @@ export interface Professeur {
   
   export interface Grade {
     id: number;
-    etudiant_id: number;
-    element_id: number;
+    etudiant: Student;
     note: number;
     absent: boolean;
     valide: boolean;
-    private EtudiantDTO etudiant;
+    element_id: number;
+    modalite_id: number;
   }
   
   export interface EvaluationMethod {
     id: number;
     nom: string;
     coefficient: number;
-    element: string;
+    elementDeModule: string;
   }
   
   export interface ProfessorAssignment {

@@ -180,7 +180,7 @@ export function ModuleManagement() {
                 <TableRow key={module.id}>
                   <TableCell className="font-medium">{module.nom}</TableCell>
                   <TableCell>{getFiliereName(module.filiere_id)}</TableCell>
-                  <TableCell>{module.elements.join(', ')}</TableCell>
+                  <TableCell>{module.elements.map((ele:any) => ele.nom).join(', ')}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button variant="outline" size="sm" onClick={() => handleEdit(module)}>

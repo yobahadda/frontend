@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect} from 'react'
 import { useSession } from '@/app/hooks/useSession'
-import { fetchModuleElementsByProfessor, fetchStudentsByElement, fetchModalitesByElement, fetchGradesByElement } from '@/services/api'
+import { fetchModuleElementsByProfessor, fetchStudentsByElement, fetchEvaluationsByElement, fetchGradesByElement, fetchGradesByElementAndEvaluation, submitGrades } from '@/services/api'
 import { ModuleElement, Student, Grade, EvaluationMethod } from '@/types'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { toast } from 'react-hot-toast'
 import { motion } from "framer-motion"
 import { Save, RefreshCw } from 'lucide-react'
+import { parse } from 'path'
+import { init } from 'next/dist/compiled/webpack/webpack'
 
 export default function GradesPage() {
   const { professor } = useSession()
@@ -23,6 +25,7 @@ export default function GradesPage() {
   const [selectedElement, setSelectedElement] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [selectedEvaluation, setSelectedEvaluation] = useState<string>('')
   const [modalitesEvaluation, setModalitesEvaluation] = useState<EvaluationMethod[]>([])
 
   useEffect(() => {
@@ -45,19 +48,22 @@ export default function GradesPage() {
 
   const handleElementChange = async (elementId: string) => {
     setSelectedElement(elementId)
-    const methods = await fetchModalitesByElement(parseInt(elementId))
+    const methods = await fetchEvaluationsByElement(parseInt(elementId))
+    const retrGrades = await fetchGradesByElement(parseInt(elementId)) // do it later
+    const studentsData = await fetchStudentsByElement(parseInt(elementId))
+    setStudents(studentsData)
     setModalitesEvaluation(methods)
     setLoading(true)
     try {
-      const studentsData = await fetchStudentsByElement(parseInt(elementId))
-      setStudents(studentsData)
-      const initialGrades = studentsData.reduce((acc:any, student:any) => {
-        acc[student.id] = { 
+      const initialGrades = studentsData.reduce((acc:any, student:Student) => {
+        acc[student.id] = {
+          id: student.id, //student id in etudiants table; must be grade id
           note: 0,
           valide: false,
+          etudiant: student,
+          absent: false,
           element_id: parseInt(elementId),
-          etudiant_id: student.id,
-          absent: false
+          modalite_id: 0
         }
         return acc
       }, {} as Record<number, Grade>)
@@ -91,6 +97,53 @@ export default function GradesPage() {
     })
   }
 
+  const handleEvaluationChange = async (evaluationId: string) => {
+    try {
+      setLoading(true);
+      setSelectedEvaluation(evaluationId);
+      
+      const elementId = parseInt(selectedElement);
+      const modaliteId = parseInt(evaluationId);
+      
+      const retrGrades = await fetchGradesByElementAndEvaluation(
+        elementId,
+        modaliteId
+      );
+      
+      if (retrGrades.length !== 0) {
+        const formattedGrades = retrGrades.reduce((acc: Record<number, Grade>, grade: Grade) => {
+          acc[grade.id] = {
+            id: grade.id,
+            note: grade.note,
+            valide: grade.valide,
+            etudiant: grade.etudiant,
+            absent: grade.absent,
+            element_id: grade.element_id,
+            modalite_id: grade.modalite_id
+          };
+          return acc;
+        }, {});
+        
+        setGrades(formattedGrades);
+      } else {
+        const updatedGrades: Record<number, Grade> = {};
+        Object.entries(grades).forEach(([id, grade]) => {
+          updatedGrades[parseInt(id)] = {
+            ...grade,
+            element_id: elementId,
+            modalite_id: modaliteId
+          };
+        });
+        setGrades(updatedGrades)
+      }
+    } catch (error) {
+      console.error('Error loading grades:', error);
+      toast.error('Erreur lors du chargement des notes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       setSaving(true)
@@ -108,6 +161,7 @@ export default function GradesPage() {
     return <div className="flex justify-center items-center h-screen">Chargement...</div>
   }
 
+
   return (
     <div className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-screen">
       <motion.div
@@ -120,7 +174,7 @@ export default function GradesPage() {
             <CardTitle className="text-3xl font-bold text-indigo-800">Saisie des Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-6">
+            <div className="mb-6 grid grid-cols-2 gap-4">
               <Select onValueChange={handleElementChange} value={selectedElement}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sélectionner un élément de module" />
@@ -133,6 +187,20 @@ export default function GradesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {selectedElement && (
+                <Select onValueChange={handleEvaluationChange} value={selectedEvaluation}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Sélectionner une évaluation" />
+                </SelectTrigger>
+                <SelectContent>
+                    {modalitesEvaluation.map((mod:EvaluationMethod) => (
+                      <SelectItem key={mod.id} value={mod.id.toString()}>
+                        {mod.nom} {mod.coefficient}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              )}
             </div>
 
             {selectedElement && (
@@ -148,42 +216,42 @@ export default function GradesPage() {
                       <TableHead className="w-1/4">Étudiant</TableHead>
                       <TableHead className="w-1/6">Note (/20)</TableHead>
                       <TableHead className="w-1/6">Absent</TableHead>
-                      <TableHead className="w-1/6">Validé</TableHead>
+                      <TableHead className="w-1/6">Valide</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {students.map(student => (
-                      <TableRow key={student.id}>
+                    {Object.entries(grades).map(([id,content]) => (
+                      <TableRow key={id}>
                         <TableCell>
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={student.imageUrl} alt={`${student.prenom} ${student.nom}`} />
-                            <AvatarFallback>{student.prenom[0]}{student.nom[0]}</AvatarFallback>
+                            <AvatarImage src={content.etudiant.imageUrl || ''} alt={`${content.etudiant.prenom} ${content.etudiant.nom}`} />
+                            <AvatarFallback>{content.etudiant.prenom[0]}{content.etudiant.nom[0]}</AvatarFallback>
                           </Avatar>
                         </TableCell>
-                        <TableCell className="font-medium">{student.nom} {student.prenom}</TableCell>
+                        <TableCell className="font-medium">{content.etudiant.nom} {content.etudiant.prenom}</TableCell>
                         <TableCell>
                           <Input
                             type="number"
                             min="0"
                             max="20"
                             step="0.25"
-                            value={grades[student.id]?.note || ''}
-                            onChange={(e) => handleGradeChange(student.id, 'note', e.target.value)}
+                            value={content.note || ''}
+                            onChange={(e) => handleGradeChange(parseInt(id), 'note', e.target.value)}
                             className="w-24 text-center"
-                            disabled={grades[student.id]?.absent}
+                            disabled={content.absent}
                           />
                         </TableCell>
                         <TableCell>
                           <Checkbox
-                            checked={grades[student.id]?.absent || false}
-                            onCheckedChange={(checked) => handleGradeChange(student.id, 'absent', checked)}
+                            checked={content.absent || false}
+                            onCheckedChange={(checked) => handleGradeChange(parseInt(id), 'absent', checked)}
                           />
                         </TableCell>
                         <TableCell>
                           <Checkbox
-                            checked={grades[student.id]?.valide || false}
-                            onCheckedChange={(checked) => handleGradeChange(student.id, 'valide', checked)}
-                            disabled={grades[student.id]?.absent || grades[student.id]?.note < 10}
+                            checked={content.valide || false}
+                            onCheckedChange={(checked) => handleGradeChange(parseInt(id), 'valide', checked)}
+                            disabled
                           />
                         </TableCell>
                       </TableRow>
