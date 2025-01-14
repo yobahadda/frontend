@@ -9,8 +9,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from 'react-hot-toast'
 import { Plus, Edit, Trash2, Loader2 } from 'lucide-react'
-import { fetchModules, fetchFilieres } from '@/services/api'
+import { fetchModules, fetchFilieres, createModule } from '@/services/api'
 import { Module, Filiere } from '@/types'
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+
+const moduleSchema = z.object({
+  nom: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
+  semestre: z.number().min(1).max(6),
+  anneeUniversitaire: z.string().regex(/^\d{4}-\d{4}$/, "Format attendu: YYYY-YYYY"),
+  filiereId: z.string().min(1, "Veuillez sélectionner une filière"),
+})
+
+type ModuleFormValues = z.infer<typeof moduleSchema>
 
 export function ModuleManagement() {
   const [modules, setModules] = useState<Module[]>([])
@@ -24,6 +45,10 @@ export function ModuleManagement() {
     loadModulesAndFilieres()
   }, [])
 
+  useEffect(() => {
+    console.log('Modules state:', modules)
+  }, [modules])
+
   const loadModulesAndFilieres = async () => {
     setIsLoading(true)
     try {
@@ -31,11 +56,38 @@ export function ModuleManagement() {
         fetchModules(),
         fetchFilieres()
       ])
-      setModules(modulesData)
-      setFilieres(filieresData)
+      setModules(modulesData || [])
+      setFilieres(filieresData || [])
     } catch (error) {
       console.error('Error loading data:', error)
       toast.error('Erreur lors du chargement des données')
+      setModules([])
+      setFilieres([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const form = useForm<ModuleFormValues>({
+    resolver: zodResolver(moduleSchema),
+    defaultValues: {
+      nom: "",
+      semestre: 1,
+      anneeUniversitaire: "",
+      filiereId: "",
+    },
+  })
+
+  const onSubmit = async (data: ModuleFormValues) => {
+    try {
+      setIsLoading(true)
+      const newModule = await createModule(data)
+      setModules([...modules, newModule])
+      toast.success('Module ajouté avec succès')
+      form.reset()
+    } catch (error) {
+      console.error('Error adding module:', error)
+      toast.error('Erreur lors de l\'ajout du module')
     } finally {
       setIsLoading(false)
     }
@@ -49,34 +101,13 @@ export function ModuleManagement() {
     setNewModule({ ...newModule, [field]: value })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      if (isEditing && editingId) {
-        // Update existing module
-        // Implement API call to update module
-        toast.success('Module modifié avec succès')
-      } else {
-        // Add new module
-        // Implement API call to add new module
-        toast.success('Module ajouté avec succès')
-      }
-      loadModulesAndFilieres() // Refresh the list
-      setNewModule({ nom: '', semestre: '', anneeUniversitaire: '', filiereId: '' })
-      setIsEditing(false)
-      setEditingId(null)
-    } catch (error) {
-      console.error('Error submitting module:', error)
-      toast.error('Erreur lors de l\'enregistrement du module')
-    }
-  }
 
   const handleEdit = (module: Module) => {
     setNewModule({
       nom: module.nom,
       semestre: module.semestre.toString(),
       anneeUniversitaire: module.anneeUniversitaire,
-      filiereId: module.Filiere.id.toString()
+      filiereId: module.filiere.id.toString()
     })
     setIsEditing(true)
     setEditingId(module.id)
@@ -107,54 +138,85 @@ export function ModuleManagement() {
         <CardTitle className="text-2xl font-bold">Gestion des Modules</CardTitle>
       </CardHeader>
       <CardContent>
-        <motion.form
-          onSubmit={handleSubmit}
-          className="space-y-4 mb-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              placeholder="Nom du module"
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mb-6">
+            <FormField
+              control={form.control}
               name="nom"
-              value={newModule.nom}
-              onChange={handleInputChange}
-              required
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nom du module</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Nom du module" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <Input
-              placeholder="Semestre"
+            <FormField
+              control={form.control}
               name="semestre"
-              type="number"
-              min="1"
-              max="6"
-              value={newModule.semestre}
-              onChange={handleInputChange}
-              required
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Semestre</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} min={1} max={6} onChange={e => field.onChange(parseInt(e.target.value))} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <Input
-              placeholder="Année universitaire"
+            <FormField
+              control={form.control}
               name="anneeUniversitaire"
-              value={newModule.anneeUniversitaire}
-              onChange={handleInputChange}
-              required
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Année universitaire</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="YYYY-YYYY" />
+                  </FormControl>
+                  <FormDescription>Format: YYYY-YYYY (ex: 2023-2024)</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <Select onValueChange={(value) => handleSelectChange(value, 'filiereId')} value={newModule.filiereId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sélectionner une filière" />
-              </SelectTrigger>
-              <SelectContent>
-                {filieres.map((filiere) => (
-                  <SelectItem key={filiere.id} value={filiere.id.toString()}>{filiere.nom}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button type="submit" className="w-full">
-            {isEditing ? 'Modifier' : 'Ajouter'} un Module
-            <Plus className="ml-2 h-4 w-4" />
-          </Button>
-        </motion.form>
+            <FormField
+              control={form.control}
+              name="filiereId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Filière</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner une filière" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {filieres.map((filiere) => (
+                        <SelectItem key={filiere.id} value={filiere.id.toString()}>{filiere.nom}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Ajout en cours...
+                </>
+              ) : (
+                <>
+                  Ajouter un Module
+                  <Plus className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+        </Form>
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -167,24 +229,30 @@ export function ModuleManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {modules.map((module) => (
-                <TableRow key={module.id}>
-                  <TableCell className="font-medium">{module.nom}</TableCell>
-                  <TableCell>{module.semestre}</TableCell>
-                  <TableCell>{module.anneeUniversitaire}</TableCell>
-                  <TableCell>{module.Filiere ? module.Filiere.nom : 'N/A'}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(module)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(module.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+              {modules && modules.length > 0 ? (
+                modules.map((module) => (
+                  <TableRow key={module.id}>
+                    <TableCell className="font-medium">{module.nom}</TableCell>
+                    <TableCell>{module.semestre}</TableCell>
+                    <TableCell>{module.anneeUniversitaire}</TableCell>
+                    <TableCell>{module.filiere?.nom || 'N/A'}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm" onClick={() => handleEdit(module)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDelete(module.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center">Aucun module trouvé</TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>

@@ -1,15 +1,17 @@
-import React from 'react';
+'use client'
+
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useCountUp } from 'use-count-up';
+import { fetchStatistics } from '@/services/api';
 
-const stats = [
-  { label: 'Étudiants', value: 5000, suffix: '+' },
-  { label: 'Professeurs', value: 200, suffix: '+' },
-  { label: 'Filières', value: 15, suffix: '+' },
-  { label: 'Taux de réussite', value: 92, suffix: '%' },
-];
+interface StatItem {
+  label: string;
+  value: number;
+  suffix: string;
+}
 
-function StatItem({ label, value, suffix, index }) {
+function StatItem({ label, value, suffix, index }: StatItem & { index: number }) {
   const { value: displayValue } = useCountUp({
     isCounting: true,
     end: value,
@@ -40,6 +42,36 @@ function StatItem({ label, value, suffix, index }) {
 }
 
 export default function Stats() {
+  const [stats, setStats] = useState<StatItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadStatistics = async () => {
+      try {
+        const statistics = await fetchStatistics();
+        setStats([
+          { label: 'Étudiants', value: statistics.studentCount, suffix: '' },
+          { label: 'Professeurs', value: statistics.professorCount, suffix: '' },
+          { label: 'Filières', value: statistics.filiereCount, suffix: '' },
+          { label: 'Modules', value: statistics.moduleCount, suffix: '' },
+          { label: 'Éléments', value: statistics.elementCount, suffix: '' },
+          { label: 'Notes', value: statistics.noteCount, suffix: '' },
+          { label: 'Moyenne générale', value: statistics.averageNote, suffix: '' },
+        ]);
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadStatistics();
+  }, []);
+
+  if (loading) {
+    return <div>Loading statistics...</div>;
+  }
+
   return (
     <section className="py-20 relative min-h-screen flex items-center overflow-hidden">
       {/* Animated Gradient Background */}
@@ -122,3 +154,4 @@ export default function Stats() {
     </section>
   );
 }
+

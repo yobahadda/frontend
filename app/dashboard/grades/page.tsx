@@ -109,14 +109,14 @@ export default function GradesPage() {
         const noteValue = Math.min(20, Math.max(0, parseFloat(value) || 0))
         updatedGrade.note = noteValue
         updatedGrade.valide = noteValue >= 10
-        updatedGrade.rattrapagePossible = noteValue < 10 && noteValue > 0
+        updatedGrade.rattrapage_possible = noteValue < 10 && noteValue > 0
       }
 
       if (field === 'absent') {
         if (value) {
           updatedGrade.note = 0
           updatedGrade.valide = false
-          updatedGrade.rattrapagePossible = false
+          updatedGrade.rattrapage_possible = false
         }
       }
 
@@ -142,8 +142,11 @@ export default function GradesPage() {
           note: grade.note,
           absent: grade.absent
         }));
+        console.log('Grades to submit:', gradesToSubmit);
+        console.log('Selected modality:', selectedModality);
 
-      const response = await fetch(`http://127.0.0.1:8080/notes/bulk/${selectedElement}`, {
+
+      const response = await fetch(`http://127.0.0.1:8080/notes/bulk/${selectedModality}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -284,9 +287,9 @@ export default function GradesPage() {
                             </TableCell>
                             <TableCell>
                               {grades[student.id]?.[parseInt(selectedModality)]?.valide ? (
-                                <Badge variant="success">Validé</Badge>
-                              ) : grades[student.id]?.[parseInt(selectedModality)]?.rattrapagePossible ? (
-                                <Badge variant="warning">Rattrapage</Badge>
+                                <Badge variant="default">Validé</Badge>
+                              ) : grades[student.id]?.[parseInt(selectedModality)]?.rattrapage_possible ? (
+                                <Badge variant="secondary">Rattrapage</Badge>
                               ) : (
                                 <Badge variant="destructive">Non validé</Badge>
                               )}

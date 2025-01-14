@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent } from "@/components/ui/card"
-import { GraduationCap, BookOpen, Users, ClipboardList, UserCheck, Settings, BarChart2, Briefcase, Menu } from 'lucide-react'
+import { GraduationCap, BookOpen, Users, ClipboardList, UserCheck, Settings, BarChart2, Briefcase, Menu, FileText } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { Button } from "@/components/ui/button"
+import Stats from '@/app/components/Stats'
 
 const Overview = dynamic(() => import('../components/Overview').then(mod => mod.Overview), { ssr: false })
 const ProfessorManagement = dynamic(() => import('../components/ProfessorManagement').then(mod => mod.ProfessorManagement), { ssr: false })
@@ -16,6 +17,7 @@ const EvaluationMethodManagement = dynamic(() => import('../components/Evaluatio
 const ProfessorAssignment = dynamic(() => import('../components/ProfessorAssignement').then(mod => mod.ProfessorAssignment), { ssr: false })
 const StudentList = dynamic(() => import('../components/StudentList').then(mod => mod.StudentList), { ssr: false })
 const UserAccountManagement = dynamic(() => import('../components/UserAccountManagement').then(mod => mod.UserAccountManagement), { ssr: false })
+const AdminGradesPage = dynamic(() => import('./grades/page').then(mod => mod.default), { ssr: false })
 
 const tabContent = [
   { id: "overview", title: "Vue d'ensemble", icon: BarChart2, component: Overview },
@@ -27,6 +29,8 @@ const tabContent = [
   { id: "assignment", title: "Affectation", icon: UserCheck, component: ProfessorAssignment },
   { id: "students", title: "Étudiants", icon: Users, component: StudentList },
   { id: "accounts", title: "Comptes", icon: Settings, component: UserAccountManagement },
+  { id: "grades", title: "Notes", icon: FileText, component: AdminGradesPage },
+  { id: "stats", title: "Statistiques", icon: BarChart2, component: Stats },
 ]
 
 const ClientSideContent = () => {

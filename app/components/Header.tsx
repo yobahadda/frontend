@@ -82,10 +82,19 @@ export default function Header({ currentSection }) {
                 </Button>
               </Link>
             </motion.div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Link href="/admin/login">
+                <Button variant="outline" className="text-red-400 border-red-400 hover:bg-red-400 hover:text-">
+                  Admin Connexion
+                </Button>
+              </Link>
+            </motion.div>
           </div>
         </div>
       </div>
     </motion.header>
   )
 }
-

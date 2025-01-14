@@ -9,6 +9,7 @@ import { PerformanceChart } from "./components/PerformanceChart"
 import { ModuleCompletionChart } from "./components/ModuleCompletionChart"
 import { UpcomingEvents } from "./components/UpcomingEvents"
 import { QuickActions } from "./components/QuickActions"
+import { GradeCalculator } from "./components/GradeCalculator"
 import { useSession } from '../hooks/useSession'
 import { fetchDashboardStats } from '@/services/api'
 import { Loader2, Users, BookOpen, GraduationCap, BarChart2 } from 'lucide-react'
@@ -81,7 +82,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Taux de Validation"
-          value={`${((stats?.validationRate ?? 0) * 100).toFixed(1)}%`}
+          value={`${(stats?.validationRate * 100).toFixed(1)}%`}
           icon={BarChart2}
           colorClass="from-purple-500 to-purple-600"
         />
@@ -152,6 +153,13 @@ export default function DashboardPage() {
           </Card>
         </motion.div>
       </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+      >
+        <GradeCalculator />
+      </motion.div>
     </div>
   )
 }

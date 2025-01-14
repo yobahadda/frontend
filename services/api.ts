@@ -10,12 +10,57 @@ const api = axios.create({
   },
 });
 
+interface Statistics {
+  filiereCount: number;
+  moduleCount: number;
+  elementCount: number;
+  studentCount: number;
+  professorCount: number;
+  noteCount: number;
+  averageNote: number;
+}
+
+export const fetchStatistics = async (): Promise<Statistics> => {
+  console.log('Fetching statistics');
+  const [
+    filiereCount,
+    moduleCount,
+    elementCount,
+    studentCount,
+    professorCount,
+    noteCount,
+    averageNote
+  ] = await Promise.all([
+    api.get('/statistics/filiere-count'),
+    api.get('/statistics/module-count'),
+    api.get('/statistics/element-count'),
+    api.get('/statistics/student-count'),
+    api.get('/statistics/professor-count'),
+    api.get('/statistics/note-count'),
+    api.get('/statistics/average-note')
+  ]);
+
+  const statistics: Statistics = {
+    filiereCount: filiereCount.data,
+    moduleCount: moduleCount.data,
+    elementCount: elementCount.data,
+    studentCount: studentCount.data,
+    professorCount: professorCount.data,
+    noteCount: noteCount.data,
+    averageNote: averageNote.data
+  };
+
+  console.log('Statistics API response:', statistics);
+  return statistics;
+};
+
 export const fetchModules = async (): Promise<Module[]> => {
   console.log('Fetching all modules');
   const response = await api.get('/modules');
   console.log('Modules API response:', response.data);
   return response.data;
 };
+
 
 export const fetchEvaluationMethods = async (elementId: number): Promise<EvaluationMethod[]> => {
   console.log(`Fetching evaluation methods for element ${elementId}`);
@@ -58,10 +103,10 @@ export const updateGrade = async (gradeId: number, data: any) => {
   return response.data;
 };
 
-export const fetchStatistics = async (professorId: number) => {
-  const response = await api.get(`/statistics/professor/${professorId}`);
-  return response.data;
-};
+// export const fetchStatistics = async (professorId: number) => {
+//   const response = await api.get(`/statistics/professor/${professorId}`);
+//   return response.data;
+// };
 
 export const fetchDepartments = async () => {
   const response = await api.get('/filieres');
@@ -86,6 +131,17 @@ export const addFiliere = async (filiere: { nom: string; description: string }):
 //   const response = await api.get(`/modalites-evaluation/element/${elementId}`);
 //   return response.data;
 // };
+export const fetchModulesByProfessor = async (professorId: number): Promise<Module[]> => {
+  console.log(`Fetching modules for professor ${professorId}`);
+  try {
+    const response = await api.get(`/professeurs/${professorId}/modules`);
+    console.log('Modules by professor API response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching modules by professor:', error);
+    throw error;
+  }
+};
 
 export const fetchAllStudents = async (): Promise<Student[]> => {
   console.log('Fetching all students');
@@ -222,4 +278,21 @@ export const deleteAssignment = async (assignmentId: number): Promise<void> => {
   console.log(`Deleting assignment ${assignmentId}`);
   await api.delete(`/affectations/${assignmentId}`);
   console.log('Delete assignment API response: success');
+};
+
+export const createModule = async (moduleData: {
+  nom: string;
+  semestre: number;
+  anneeUniversitaire: string;
+  filiereId: string;
+}): Promise<Module> => {
+  console.log('Creating new module:', moduleData);
+  try {
+    const response = await api.post('/modules', moduleData);
+    console.log('Create module API response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating module:', error);
+    throw error;
+  }
 };

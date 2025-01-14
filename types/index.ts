@@ -89,3 +89,7 @@ export interface ModuleElement {
 
 export type ProfessorElements = ModuleElement[];
 
+export interface CalculatedGrade {
+  etudiantId: number;
+  finalScore: number;
+}
