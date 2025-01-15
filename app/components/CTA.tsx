@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import emailjs from 'emailjs-com'
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
 import { Input } from "@/components/ui/input"
@@ -8,11 +9,30 @@ export default function CTA() {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Here you would typically send the email to your backend
-    setIsSubmitted(true)
+  
+    const templateParams = {
+      to_name: "User",
+      from_name: "Your Company Name", 
+      message: `Here are your login credentials:\nEmail: ${email}\nPassword: YourGeneratedPasswor123`,
+      sender_name: "Your Company Team" 
+    }
+  
+    try {
+      await emailjs.send(
+        'service_bumu1h2',
+        'template_zoqx5rv',
+        templateParams,
+        'i87l1ehGigmFyXCUL' // 
+      )
+      setIsSubmitted(true)
+    } catch (error) {
+      console.error("Failed to send email:", error)
+      alert("Failed to send email. Please try again later.")
+    }
   }
+  
 
   return (
     <section className="py-20 relative overflow-hidden">
